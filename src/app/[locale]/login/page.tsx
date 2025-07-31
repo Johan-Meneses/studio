@@ -1,7 +1,6 @@
 'use client';
 
-import Link from 'next-intl/link';
-import { useRouter } from 'next-intl/navigation';
+import { Link, useRouter } from 'next-intl/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -26,6 +25,7 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import type { LoginFormData } from '@/lib/types';
 import { useTranslations } from 'next-intl';
+import { useToast } from '@/hooks/use-toast';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address.'),
@@ -34,8 +34,10 @@ const loginSchema = z.object({
 
 export default function LoginPage() {
   const t = useTranslations('LoginPage');
+  const tToast = useTranslations('Toasts');
   const { login } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -45,8 +47,14 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginFormData) => {
-    const success = await login(data);
-    if (success) {
+    const error = await login(data);
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: tToast('loginFailed'),
+        description: error,
+      });
+    } else {
       router.push('/dashboard');
     }
   };

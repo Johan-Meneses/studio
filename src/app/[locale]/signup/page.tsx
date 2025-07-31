@@ -1,7 +1,6 @@
 'use client';
 
-import Link from 'next-intl/link';
-import { useRouter } from 'next-intl/navigation';
+import { Link, useRouter } from 'next-intl/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -26,6 +25,7 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import type { SignupFormData } from '@/lib/types';
 import { useTranslations } from 'next-intl';
+import { useToast } from '@/hooks/use-toast';
 
 const signupSchema = z.object({
   name: z.string().min(1, 'Name is required.'),
@@ -35,8 +35,10 @@ const signupSchema = z.object({
 
 export default function SignupPage() {
     const t = useTranslations('SignupPage');
+    const tToast = useTranslations('Toasts');
     const { signup } = useAuth();
     const router = useRouter();
+    const { toast } = useToast();
     const form = useForm<SignupFormData>({
         resolver: zodResolver(signupSchema),
         defaultValues: {
@@ -47,8 +49,14 @@ export default function SignupPage() {
     });
 
     const onSubmit = async (data: SignupFormData) => {
-      const success = await signup(data);
-      if (success) {
+      const error = await signup(data);
+      if (error) {
+        toast({
+            variant: 'destructive',
+            title: tToast('signupFailed'),
+            description: error,
+        });
+      } else {
         router.push('/dashboard');
       }
     };

@@ -1,6 +1,6 @@
 'use client';
 
-import { Link, usePathname } from 'next-intl/navigation';
+import { Link, usePathname, useRouter } from 'next-intl/navigation';
 import {
   BarChart3,
   LayoutDashboard,
@@ -19,6 +19,7 @@ import { LanguageSwitcher } from './language-switcher';
 export function AppSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const router = useRouter();
   const t = useTranslations('AppSidebar');
 
   const navItems = [
@@ -26,6 +27,11 @@ export function AppSidebar() {
     { href: '/reports', label: t('reports'), icon: BarChart3 },
     { href: '/categories', label: t('categories'), icon: Tags },
   ];
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  }
 
   return (
     <div className="hidden border-r bg-card md:block">
@@ -66,7 +72,7 @@ export function AppSidebar() {
                     <p className="font-medium leading-none">{user?.displayName || t('welcome')}</p>
                     <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                 </div>
-                <Button variant="ghost" size="icon" className="ml-auto" onClick={logout}>
+                <Button variant="ghost" size="icon" className="ml-auto" onClick={handleLogout}>
                     <LogOut className="h-4 w-4" />
                     <span className="sr-only">{t('logout')}</span>
                 </Button>

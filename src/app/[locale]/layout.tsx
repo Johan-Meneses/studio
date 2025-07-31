@@ -34,14 +34,14 @@ export default async function LocaleLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <NextIntlClientProvider messages={messages}>
-          <AuthProvider>
+        <AuthProvider>
+          <NextIntlClientProvider messages={messages}>
             <ProtectedLayout>
               {children}
             </ProtectedLayout>
             <Toaster />
-          </AuthProvider>
-        </NextIntlClientProvider>
+          </NextIntlClientProvider>
+        </AuthProvider>
       </body>
     </html>
   );
