@@ -32,7 +32,7 @@ export default async function LocaleLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <NextIntlClientProvider messages={messages}>
+        <NextIntlClientProvider locale={locale} messages={messages}>
           <AuthProvider>
             <ProtectedLayout>{children}</ProtectedLayout>
             <Toaster />

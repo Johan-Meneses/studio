@@ -21,9 +21,12 @@ export function ProtectedLayout({ children }: { children: ReactNode }) {
     if (user && isAuthPage) {
       router.replace('/dashboard');
     }
+    // Las dependencias están perfectas
   }, [user, loading, router, pathname, isAuthPage]);
 
-  if (loading || (!user && !isAuthPage)) {
+  // 👇 ESTA ES LA LÍNEA MODIFICADA
+  // Ahora también cubre el caso en que un usuario logueado está en una página de auth
+  if (loading || (!user && !isAuthPage) || (user && isAuthPage)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p>{t('loading')}</p>
