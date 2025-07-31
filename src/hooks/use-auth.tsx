@@ -15,8 +15,7 @@ import {
   signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { usePathname } from 'next-intl/navigation';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next-intl/navigation';
 import type { LoginFormData, SignupFormData } from '@/lib/types';
 import { useToast } from './use-toast';
 import { useTranslations } from 'next-intl';
