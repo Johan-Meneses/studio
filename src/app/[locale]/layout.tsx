@@ -1,39 +1,24 @@
-'use client';
-
-import type { Metadata } from 'next';
-import { NextIntlClientProvider, useMessages } from 'next-intl';
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages } from 'next-intl/server';
 import React from 'react';
 import '../globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import { AuthProvider, ProtectedLayout } from '@/hooks/use-auth';
-import { useLocale } from 'next-intl';
+import { AuthProvider } from '@/hooks/use-auth';
+import { ProtectedLayout } from '@/components/protected-layout';
 
-export default function LocaleLayout({
+export default async function LocaleLayout({
   children,
-  params,
+  params: { locale },
 }: {
   children: React.ReactNode;
   params: { locale: string };
 }) {
-  const locale = useLocale();
-  const messages = useMessages();
-  // Ensure the locale from params is used if available, otherwise fallback to the one from the hook.
-  const finalLocale = params.locale || locale;
-
-  if (!messages) {
-    return (
-      <html lang={finalLocale}>
-        <body>
-          <div className="flex h-screen items-center justify-center">
-            Loading...
-          </div>
-        </body>
-      </html>
-    );
-  }
+  // Providing all messages to the client
+  // side is a good default.
+  const messages = await getMessages();
 
   return (
-    <html lang={finalLocale}>
+    <html lang={locale}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -47,15 +32,12 @@ export default function LocaleLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <AuthProvider>
-          <NextIntlClientProvider
-            locale={finalLocale}
-            messages={messages}
-          >
+        <NextIntlClientProvider messages={messages}>
+          <AuthProvider>
             <ProtectedLayout>{children}</ProtectedLayout>
             <Toaster />
-          </NextIntlClientProvider>
-        </AuthProvider>
+          </AuthProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

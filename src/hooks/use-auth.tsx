@@ -15,9 +15,7 @@ import {
   signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { useRouter, usePathname } from 'next-intl/navigation';
 import type { LoginFormData, SignupFormData } from '@/lib/types';
-import { useTranslations } from 'next-intl';
 
 type AuthResponse = {
   success: boolean;
@@ -90,30 +88,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-export function ProtectedLayout({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-  const pathname = usePathname();
-  const t = useTranslations('ProtectedLayout');
-  const isAuthPage = pathname.includes('/login') || pathname.includes('/signup');
-
-  useEffect(() => {
-    if (!loading && !user && !isAuthPage) {
-      router.replace('/login');
-    }
-    if (!loading && user && isAuthPage) {
-        router.replace('/dashboard');
-    }
-  }, [user, loading, router, pathname, isAuthPage]);
-
-  if (loading || (!user && !isAuthPage)) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>{t('loading')}</p>
-      </div>
-    );
-  }
-
-  return <>{children}</>;
-}
