@@ -1,9 +1,7 @@
-import { ProtectedLayout } from '@/hooks/use-auth';
 import { AppSidebar } from './app-sidebar';
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ProtectedLayout>
       <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
         <AppSidebar />
         <div className="flex flex-col">
@@ -12,6 +10,5 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
           </main>
         </div>
       </div>
-    </ProtectedLayout>
   );
 }

@@ -3,7 +3,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import '../globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import { AuthProvider } from '@/hooks/use-auth';
+import { AuthProvider, ProtectedLayout } from '@/hooks/use-auth';
 
 export const metadata: Metadata = {
   title: 'BudgetView',
@@ -36,7 +36,9 @@ export default async function LocaleLayout({
       <body className="font-body antialiased">
         <NextIntlClientProvider messages={messages}>
           <AuthProvider>
-            {children}
+            <ProtectedLayout>
+              {children}
+            </ProtectedLayout>
             <Toaster />
           </AuthProvider>
         </NextIntlClientProvider>

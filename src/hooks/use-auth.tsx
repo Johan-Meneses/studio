@@ -15,7 +15,7 @@ import {
   signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next-intl/navigation';
 import type { LoginFormData, SignupFormData } from '@/lib/types';
 import { useToast } from './use-toast';
 import { useTranslations } from 'next-intl';
@@ -23,8 +23,8 @@ import { useTranslations } from 'next-intl';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (data: LoginFormData) => Promise<void>;
-  signup: (data: SignupFormData) => Promise<void>;
+  login: (data: LoginFormData) => Promise<boolean>;
+  signup: (data: SignupFormData) => Promise<boolean>;
   logout: () => Promise<void>;
 }
 
@@ -33,7 +33,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
   const { toast } = useToast();
   const t = useTranslations('Toasts');
 
@@ -48,32 +47,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async ({ email, password }: LoginFormData) => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push('/dashboard');
+      return true;
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: t('loginFailed'),
         description: error.message,
       });
+      return false;
     }
   };
 
   const signup = async ({ email, password }: SignupFormData) => {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      router.push('/dashboard');
+      return true;
     } catch (error: any) {
        toast({
         variant: 'destructive',
         title: t('signupFailed'),
         description: error.message,
       });
+      return false;
     }
   };
 
   const logout = async () => {
     await firebaseSignOut(auth);
-    router.push('/login');
   };
 
   const value = {
@@ -96,7 +96,7 @@ export const useAuth = () => {
 };
 
 export function ProtectedLayout({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const t = useTranslations('ProtectedLayout');
@@ -109,6 +109,13 @@ export function ProtectedLayout({ children }: { children: ReactNode }) {
       }
     }
   }, [user, loading, router, pathname]);
+  
+  // Handle logout redirect after state is updated
+  useEffect(() => {
+    if(!user && (pathname === '/dashboard' || pathname === '/reports' || pathname === '/categories')) {
+      router.replace('/login');
+    }
+  }, [user, pathname, router]);
 
   if (loading || (!user && pathname !== '/login' && pathname !== '/signup')) {
     return (

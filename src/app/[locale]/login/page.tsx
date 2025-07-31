@@ -1,6 +1,7 @@
 'use client';
 
-import { Link, useRouter } from 'next-intl/navigation';
+import Link from 'next-intl/link';
+import { useRouter } from 'next-intl/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -34,6 +35,7 @@ const loginSchema = z.object({
 export default function LoginPage() {
   const t = useTranslations('LoginPage');
   const { login } = useAuth();
+  const router = useRouter();
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -41,6 +43,13 @@ export default function LoginPage() {
       password: '',
     },
   });
+
+  const onSubmit = async (data: LoginFormData) => {
+    const success = await login(data);
+    if (success) {
+      router.push('/dashboard');
+    }
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -52,7 +61,7 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(login)} className="grid gap-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
               <FormField
                 control={form.control}
                 name="email"

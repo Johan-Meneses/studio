@@ -1,6 +1,7 @@
 'use client';
 
-import { Link } from 'next-intl/navigation';
+import Link from 'next-intl/link';
+import { useRouter } from 'next-intl/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -35,6 +36,7 @@ const signupSchema = z.object({
 export default function SignupPage() {
     const t = useTranslations('SignupPage');
     const { signup } = useAuth();
+    const router = useRouter();
     const form = useForm<SignupFormData>({
         resolver: zodResolver(signupSchema),
         defaultValues: {
@@ -43,6 +45,13 @@ export default function SignupPage() {
             password: '',
         },
     });
+
+    const onSubmit = async (data: SignupFormData) => {
+      const success = await signup(data);
+      if (success) {
+        router.push('/dashboard');
+      }
+    };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -56,7 +65,7 @@ export default function SignupPage() {
         </CardHeader>
         <CardContent>
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(signup)} className="grid gap-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
                     <FormField
                         control={form.control}
                         name="name"
