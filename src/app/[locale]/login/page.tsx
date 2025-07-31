@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from 'next-intl/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/form';
 import { useAuth } from '@/hooks/use-auth';
 import type { LoginFormData } from '@/lib/types';
+import { useTranslations } from 'next-intl';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address.'),
@@ -31,6 +32,7 @@ const loginSchema = z.object({
 });
 
 export default function LoginPage() {
+  const t = useTranslations('LoginPage');
   const { login } = useAuth();
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -45,10 +47,8 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <Logo className="mb-4" />
-          <CardTitle className="text-2xl font-headline">Login</CardTitle>
-          <CardDescription>
-            Enter your email below to login to your account
-          </CardDescription>
+          <CardTitle className="text-2xl font-headline">{t('title')}</CardTitle>
+          <CardDescription>{t('description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -58,12 +58,12 @@ export default function LoginPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">{t('emailLabel')}</Label>
                     <FormControl>
                       <Input
                         id="email"
                         type="email"
-                        placeholder="m@example.com"
+                        placeholder={t('emailPlaceholder')}
                         {...field}
                       />
                     </FormControl>
@@ -77,12 +77,12 @@ export default function LoginPage() {
                 render={({ field }) => (
                   <FormItem>
                      <div className="flex items-center">
-                        <Label htmlFor="password">Password</Label>
+                        <Label htmlFor="password">{t('passwordLabel')}</Label>
                         <Link
                           href="#"
                           className="ml-auto inline-block text-sm underline"
                         >
-                          Forgot your password?
+                          {t('forgotPasswordLink')}
                         </Link>
                       </div>
                     <FormControl>
@@ -93,17 +93,17 @@ export default function LoginPage() {
                 )}
               />
               <Button type="submit" className="w-full">
-                Login
+                {t('loginButton')}
               </Button>
               <Button variant="outline" className="w-full" type="button">
-                Login with Google
+                {t('googleLoginButton')}
               </Button>
             </form>
           </Form>
           <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{' '}
+            {t('signupPrompt')}{' '}
             <Link href="/signup" className="underline">
-              Sign up
+              {t('signupLink')}
             </Link>
           </div>
         </CardContent>

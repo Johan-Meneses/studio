@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 import { mockMonthlyTrends, mockAnnualDistribution } from '@/lib/data';
 import { Bar, BarChart, CartesianGrid, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-
+import { useTranslations } from 'next-intl';
 
 function DateRangePicker({
   className,
@@ -29,6 +29,7 @@ function DateRangePicker({
     from: new Date(2024, 0, 1),
     to: new Date(2024, 6, 30),
   });
+  const t = useTranslations('AddTransactionDialog');
 
   return (
     <div className={cn('grid gap-2', className)}>
@@ -53,7 +54,7 @@ function DateRangePicker({
                 format(date.from, 'LLL dd, y')
               )
             ) : (
-              <span>Pick a date</span>
+              <span>{t('pickDate')}</span>
             )}
           </Button>
         </PopoverTrigger>
@@ -73,22 +74,23 @@ function DateRangePicker({
 }
 
 export default function ReportsPage() {
+  const t = useTranslations('ReportsPage');
   const chartConfig = {
-    income: { label: "Income", color: "hsl(var(--chart-1))" },
-    expense: { label: "Expense", color: "hsl(var(--chart-2))" },
+    income: { label: t('income'), color: "hsl(var(--chart-1))" },
+    expense: { label: t('expense'), color: "hsl(var(--chart-2))" },
   }
 
   return (
     <MainLayout>
-      <PageHeader title="Reports">
+      <PageHeader title={t('title')}>
         <DateRangePicker />
       </PageHeader>
       
       <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Monthly Trends</CardTitle>
-            <CardDescription>Income vs. Expenses over the last 6 months.</CardDescription>
+            <CardTitle>{t('monthlyTrends')}</CardTitle>
+            <CardDescription>{t('monthlyTrendsDescription')}</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
              <ChartContainer config={chartConfig} className="h-full w-full">
@@ -109,8 +111,8 @@ export default function ReportsPage() {
         
         <Card>
           <CardHeader>
-            <CardTitle>Annual Spending</CardTitle>
-            <CardDescription>Distribution of your expenses by category this year.</CardDescription>
+            <CardTitle>{t('annualSpending')}</CardTitle>
+            <CardDescription>{t('annualSpendingDescription')}</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px] flex items-center justify-center">
             <ChartContainer config={{}} className="h-full w-full">

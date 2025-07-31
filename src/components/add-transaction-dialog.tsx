@@ -48,6 +48,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { mockCategories } from '@/lib/data';
 import { suggestCategory } from '@/ai/flows/categorize-transaction';
+import { useTranslations } from 'next-intl';
 
 const transactionSchema = z.object({
   description: z.string().min(1, 'Description is required.'),
@@ -60,6 +61,7 @@ const transactionSchema = z.object({
 type TransactionFormValues = z.infer<typeof transactionSchema>;
 
 export function AddTransactionDialog() {
+  const t = useTranslations('AddTransactionDialog');
   const [open, setOpen] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const { toast } = useToast();
@@ -81,7 +83,7 @@ export function AddTransactionDialog() {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Please enter a description first.',
+        description: t('errorDescription'),
       });
       return;
     }
@@ -93,15 +95,18 @@ export function AddTransactionDialog() {
       });
       form.setValue('category', result.suggestedCategory, { shouldValidate: true });
       toast({
-        title: 'Category Suggested',
-        description: `We suggest "${result.suggestedCategory}" with ${Math.round(result.confidence * 100)}% confidence.`,
+        title: t('categorySuggested'),
+        description: t('suggestionConfidence', {
+          suggestedCategory: result.suggestedCategory,
+          confidence: Math.round(result.confidence * 100)
+        }),
       });
     } catch (error) {
       console.error('Error suggesting category:', error);
       toast({
         variant: 'destructive',
         title: 'Suggestion Failed',
-        description: 'Could not suggest a category at this time.',
+        description: t('suggestionFailed'),
       });
     } finally {
       setIsSuggesting(false);
@@ -111,8 +116,8 @@ export function AddTransactionDialog() {
   const onSubmit = (data: TransactionFormValues) => {
     console.log(data);
     toast({
-      title: 'Transaction Added',
-      description: `Successfully added ${data.description}.`,
+      title: t('transactionAdded'),
+      description: t('transactionAddedSuccess', {description: data.description}),
     });
     setOpen(false);
     form.reset();
@@ -123,14 +128,14 @@ export function AddTransactionDialog() {
       <DialogTrigger asChild>
         <Button>
           <PlusCircle className="mr-2 h-4 w-4" />
-          Add Transaction
+          {t('addTransaction')}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>Add New Transaction</DialogTitle>
+          <DialogTitle>{t('dialogTitle')}</DialogTitle>
           <DialogDescription>
-            Fill in the details of your transaction.
+            {t('dialogDescription')}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -140,9 +145,9 @@ export function AddTransactionDialog() {
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>{t('descriptionLabel')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Coffee with a friend" {...field} />
+                    <Input placeholder={t('descriptionPlaceholder')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -154,7 +159,7 @@ export function AddTransactionDialog() {
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Amount</FormLabel>
+                    <FormLabel>{t('amountLabel')}</FormLabel>
                     <FormControl>
                       <Input type="number" placeholder="0.00" {...field} />
                     </FormControl>
@@ -167,7 +172,7 @@ export function AddTransactionDialog() {
                 name="date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Date</FormLabel>
+                    <FormLabel>{t('dateLabel')}</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -181,7 +186,7 @@ export function AddTransactionDialog() {
                             {field.value ? (
                               format(field.value, 'PPP')
                             ) : (
-                              <span>Pick a date</span>
+                              <span>{t('pickDate')}</span>
                             )}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
@@ -210,19 +215,19 @@ export function AddTransactionDialog() {
                   name="type"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Type</FormLabel>
+                      <FormLabel>{t('typeLabel')}</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select type" />
+                            <SelectValue placeholder={t('selectType')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="expense">Expense</SelectItem>
-                          <SelectItem value="income">Income</SelectItem>
+                          <SelectItem value="expense">{t('expense')}</SelectItem>
+                          <SelectItem value="income">{t('income')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -234,12 +239,12 @@ export function AddTransactionDialog() {
                   name="category"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Category</FormLabel>
+                      <FormLabel>{t('categoryLabel')}</FormLabel>
                       <div className="flex gap-2">
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select category" />
+                              <SelectValue placeholder={t('selectCategory')} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -256,7 +261,7 @@ export function AddTransactionDialog() {
                             size="icon"
                             onClick={handleSuggestCategory}
                             disabled={isSuggesting}
-                            aria-label="Suggest Category"
+                            aria-label={t('suggestCategory')}
                           >
                             {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4" />}
                           </Button>
@@ -267,7 +272,7 @@ export function AddTransactionDialog() {
                 />
             </div>
             <DialogFooter>
-              <Button type="submit">Add Transaction</Button>
+              <Button type="submit">{t('addTransactionButton')}</Button>
             </DialogFooter>
           </form>
         </Form>

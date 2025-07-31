@@ -15,9 +15,10 @@ import {
   signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next-intl/client';
 import type { LoginFormData, SignupFormData } from '@/lib/types';
 import { useToast } from './use-toast';
+import { useTranslations } from 'next-intl';
 
 interface AuthContextType {
   user: User | null;
@@ -34,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations('Toasts');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -50,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Login Failed',
+        title: t('loginFailed'),
         description: error.message,
       });
     }
@@ -63,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
        toast({
         variant: 'destructive',
-        title: 'Sign Up Failed',
+        title: t('signupFailed'),
         description: error.message,
       });
     }
@@ -96,17 +98,22 @@ export const useAuth = () => {
 export function ProtectedLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const t = useTranslations('ProtectedLayout');
 
   useEffect(() => {
     if (!loading && !user) {
-      router.replace('/login');
+      // We don't want to redirect login/signup pages
+      if (pathname !== '/login' && pathname !== '/signup') {
+         router.replace('/login');
+      }
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, pathname]);
 
-  if (loading || !user) {
+  if (loading || (!user && pathname !== '/login' && pathname !== '/signup')) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p>Loading...</p>
+        <p>{t('loading')}</p>
       </div>
     );
   }

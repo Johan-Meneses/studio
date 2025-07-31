@@ -1,29 +1,32 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import Link from 'next-intl/link';
+import { usePathname } from 'next-intl/navigation';
 import {
   BarChart3,
   LayoutDashboard,
   Tags,
   LogOut,
-  ArrowRightLeft,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Logo } from './logo';
 import { useAuth } from '@/hooks/use-auth';
+import { useTranslations } from 'next-intl';
+import { LanguageSwitcher } from './language-switcher';
 
-const navItems = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/reports', icon: BarChart3, label: 'Reports' },
-  { href: '/categories', icon: Tags, label: 'Categories' },
-];
 
 export function AppSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const t = useTranslations('AppSidebar');
+
+  const navItems = [
+    { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
+    { href: '/reports', label: t('reports'), icon: BarChart3 },
+    { href: '/categories', label: t('categories'), icon: Tags },
+  ];
 
   return (
     <div className="hidden border-r bg-card md:block">
@@ -49,18 +52,24 @@ export function AppSidebar() {
           </nav>
         </div>
         <div className="mt-auto p-4 border-t">
+           <div className="flex items-center gap-2 mb-4">
+                <p className="text-sm font-medium">{t('language')}</p>
+                <div className="ml-auto">
+                    <LanguageSwitcher />
+                </div>
+            </div>
             <div className="flex items-center gap-3">
                 <Avatar className="h-9 w-9">
                     <AvatarImage src={user?.photoURL || "https://placehold.co/100x100.png"} alt="User avatar" data-ai-hint="person" />
                     <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 truncate">
-                    <p className="font-medium leading-none">{user?.displayName || 'Welcome'}</p>
+                    <p className="font-medium leading-none">{user?.displayName || t('welcome')}</p>
                     <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                 </div>
                 <Button variant="ghost" size="icon" className="ml-auto" onClick={logout}>
                     <LogOut className="h-4 w-4" />
-                    <span className="sr-only">Logout</span>
+                    <span className="sr-only">{t('logout')}</span>
                 </Button>
             </div>
         </div>

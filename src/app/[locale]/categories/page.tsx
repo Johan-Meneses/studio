@@ -42,8 +42,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { useTranslations } from 'next-intl';
 
 function CategoryDialog({ category, onSave, children }: { category?: Category | null, onSave: (name: string) => void, children: React.ReactNode }) {
+  const t = useTranslations('CategoriesPage');
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(category?.name || '');
 
@@ -63,27 +65,27 @@ function CategoryDialog({ category, onSave, children }: { category?: Category | 
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{category ? 'Edit Category' : 'Add Category'}</DialogTitle>
+          <DialogTitle>{category ? t('dialogEditTitle') : t('dialogAddTitle')}</DialogTitle>
           <DialogDescription>
-            {category ? `Editing the category "${category.name}".` : 'Create a new category for your transactions.'}
+            {category ? t('dialogEditDescription', {categoryName: category.name}) : t('dialogAddDescription')}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
-              Name
+              {t('dialogNameLabel')}
             </Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="col-span-3"
-              placeholder="e.g., Groceries"
+              placeholder={t('dialogNamePlaceholder')}
             />
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={handleSave}>Save changes</Button>
+          <Button onClick={handleSave}>{t('dialogSaveChanges')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -91,6 +93,8 @@ function CategoryDialog({ category, onSave, children }: { category?: Category | 
 }
 
 export default function CategoriesPage() {
+  const t = useTranslations('CategoriesPage');
+  const tToast = useTranslations('Toasts');
   const [categories, setCategories] = useState<Category[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -117,9 +121,9 @@ export default function CategoriesPage() {
         name,
         userId: user.uid,
       });
-      toast({ title: "Category Added", description: `"${name}" has been added.` });
+      toast({ title: t('categoryAdded'), description: t('categoryAddedSuccess', {name}) });
     } catch (error) {
-       toast({ title: "Error", description: "Failed to add category.", variant: "destructive" });
+       toast({ title: tToast('error'), description: tToast('failedToAddCategory'), variant: "destructive" });
     }
   };
 
@@ -127,9 +131,9 @@ export default function CategoriesPage() {
     try {
         const categoryRef = doc(db, 'categories', id);
         await updateDoc(categoryRef, { name });
-        toast({ title: "Category Updated", description: `Category has been updated to "${name}".` });
+        toast({ title: t('categoryUpdated'), description: t('categoryUpdatedSuccess', {name}) });
     } catch (error) {
-        toast({ title: "Error", description: "Failed to update category.", variant: "destructive" });
+        toast({ title: tToast('error'), description: tToast('failedToUpdateCategory'), variant: "destructive" });
     }
   };
   
@@ -137,34 +141,34 @@ export default function CategoriesPage() {
     try {
         const categoryName = categories.find(c => c.id === id)?.name;
         await deleteDoc(doc(db, 'categories', id));
-        toast({ title: "Category Deleted", description: `"${categoryName}" has been deleted.` });
+        toast({ title: t('categoryDeleted'), description: t('categoryDeletedSuccess', {name: categoryName}) });
     } catch (error) {
-        toast({ title: "Error", description: "Failed to delete category.", variant: "destructive" });
+        toast({ title: tToast('error'), description: tToast('failedToDeleteCategory'), variant: "destructive" });
     }
   };
 
 
   return (
     <MainLayout>
-      <PageHeader title="Categories">
+      <PageHeader title={t('title')}>
         <CategoryDialog onSave={handleAddCategory}>
             <Button>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Category
+                <PlusCircle className="mr-2 h-4 w-4" /> {t('addCategory')}
             </Button>
         </CategoryDialog>
       </PageHeader>
       
       <Card>
         <CardHeader>
-          <CardTitle>Your Categories</CardTitle>
-          <CardDescription>Manage your custom spending categories here.</CardDescription>
+          <CardTitle>{t('cardTitle')}</CardTitle>
+          <CardDescription>{t('cardDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t('tableNameHeader')}</TableHead>
+                <TableHead className="text-right">{t('tableActionsHeader')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -183,12 +187,12 @@ export default function CategoriesPage() {
                         <CategoryDialog category={category} onSave={(name) => handleEditCategory(category.id, name)}>
                             <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
                                 <Pencil className="mr-2 h-4 w-4" />
-                                <span>Edit</span>
+                                <span>{t('edit')}</span>
                             </button>
                         </CategoryDialog>
                         <DropdownMenuItem onClick={() => handleDeleteCategory(category.id)} className="text-red-500 focus:text-red-500 focus:bg-red-50">
                           <Trash2 className="mr-2 h-4 w-4" />
-                          <span>Delete</span>
+                          <span>{t('delete')}</span>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

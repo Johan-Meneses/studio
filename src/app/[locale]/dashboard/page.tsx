@@ -30,6 +30,7 @@ import { mockTransactions, mockMonthlySummary, mockExpenseByCategory } from '@/l
 import { format } from 'date-fns';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { useTranslations } from 'next-intl';
 
 function SummaryCard({ title, value, icon: Icon, description }: { title: string; value: string; icon: React.ElementType; description: string; }) {
     return (
@@ -47,37 +48,38 @@ function SummaryCard({ title, value, icon: Icon, description }: { title: string;
 }
 
 export default function DashboardPage() {
+    const t = useTranslations('DashboardPage');
     const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
   return (
     <MainLayout>
-      <PageHeader title="Dashboard">
+      <PageHeader title={t('title')}>
         <AddTransactionDialog />
       </PageHeader>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <SummaryCard title="Total Income" value={formatCurrency(mockMonthlySummary.totalIncome)} icon={Landmark} description="+ $500 this month" />
-          <SummaryCard title="Total Expenses" value={formatCurrency(mockMonthlySummary.totalExpense)} icon={ShoppingBag} description="+ $120 this month" />
-          <SummaryCard title="Balance" value={formatCurrency(mockMonthlySummary.balance)} icon={Wallet} description="Your current balance" />
+          <SummaryCard title={t('totalIncome')} value={formatCurrency(mockMonthlySummary.totalIncome)} icon={Landmark} description={t('totalIncomeDescription', {amount: '500'})} />
+          <SummaryCard title={t('totalExpenses')} value={formatCurrency(mockMonthlySummary.totalExpense)} icon={ShoppingBag} description={t('totalExpensesDescription', {amount: '120'})} />
+          <SummaryCard title={t('balance')} value={formatCurrency(mockMonthlySummary.balance)} icon={Wallet} description={t('balanceDescription')} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="lg:col-span-4">
             <CardHeader>
-                <CardTitle>Recent Transactions</CardTitle>
+                <CardTitle>{t('recentTransactions')}</CardTitle>
                 <CardDescription>
-                    Here are the latest transactions for this month.
+                    {t('recentTransactionsDescription')}
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Description</TableHead>
-                            <TableHead>Category</TableHead>
-                            <TableHead className="text-right">Amount</TableHead>
-                            <TableHead className="hidden md:table-cell">Date</TableHead>
-                            <TableHead><span className="sr-only">Actions</span></TableHead>
+                            <TableHead>{t('description')}</TableHead>
+                            <TableHead>{t('category')}</TableHead>
+                            <TableHead className="text-right">{t('amount')}</TableHead>
+                            <TableHead className="hidden md:table-cell">{t('date')}</TableHead>
+                            <TableHead><span className="sr-only">{t('actions')}</span></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -106,8 +108,8 @@ export default function DashboardPage() {
 
         <Card className="lg:col-span-3">
             <CardHeader>
-                <CardTitle>Expense Distribution</CardTitle>
-                <CardDescription>A look at your spending by category this month.</CardDescription>
+                <CardTitle>{t('expenseDistribution')}</CardTitle>
+                <CardDescription>{t('expenseDistributionDescription')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <ChartContainer config={{}} className="h-[280px] w-full">

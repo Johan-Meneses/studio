@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from 'next-intl/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/form';
 import { useAuth } from '@/hooks/use-auth';
 import type { SignupFormData } from '@/lib/types';
-
+import { useTranslations } from 'next-intl';
 
 const signupSchema = z.object({
   name: z.string().min(1, 'Name is required.'),
@@ -32,8 +32,8 @@ const signupSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters.'),
 });
 
-
 export default function SignupPage() {
+    const t = useTranslations('SignupPage');
     const { signup } = useAuth();
     const form = useForm<SignupFormData>({
         resolver: zodResolver(signupSchema),
@@ -49,9 +49,9 @@ export default function SignupPage() {
       <Card className="mx-auto max-w-sm">
         <CardHeader>
           <Logo className="mb-4" />
-          <CardTitle className="text-2xl font-headline">Sign Up</CardTitle>
+          <CardTitle className="text-2xl font-headline">{t('title')}</CardTitle>
           <CardDescription>
-            Enter your information to create an account
+            {t('description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -62,9 +62,9 @@ export default function SignupPage() {
                         name="name"
                         render={({ field }) => (
                             <FormItem>
-                                <Label htmlFor="name">Name</Label>
+                                <Label htmlFor="name">{t('nameLabel')}</Label>
                                 <FormControl>
-                                    <Input id="name" placeholder="Max" {...field} />
+                                    <Input id="name" placeholder={t('namePlaceholder')} {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -75,9 +75,9 @@ export default function SignupPage() {
                         name="email"
                         render={({ field }) => (
                             <FormItem>
-                                <Label htmlFor="email">Email</Label>
+                                <Label htmlFor="email">{t('emailLabel')}</Label>
                                 <FormControl>
-                                    <Input id="email" type="email" placeholder="m@example.com" {...field} />
+                                    <Input id="email" type="email" placeholder={t('emailPlaceholder')} {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -88,7 +88,7 @@ export default function SignupPage() {
                         name="password"
                         render={({ field }) => (
                             <FormItem>
-                                <Label htmlFor="password">Password</Label>
+                                <Label htmlFor="password">{t('passwordLabel')}</Label>
                                 <FormControl>
                                     <Input id="password" type="password" {...field} />
                                 </FormControl>
@@ -97,17 +97,17 @@ export default function SignupPage() {
                         )}
                     />
                     <Button type="submit" className="w-full">
-                        Create an account
+                        {t('createAccountButton')}
                     </Button>
                     <Button variant="outline" className="w-full" type="button">
-                        Sign up with Google
+                        {t('googleSignupButton')}
                     </Button>
                  </form>
             </Form>
           <div className="mt-4 text-center text-sm">
-            Already have an account?{' '}
+            {t('loginPrompt')}{' '}
             <Link href="/login" className="underline">
-              Login
+              {t('loginLink')}
             </Link>
           </div>
         </CardContent>
