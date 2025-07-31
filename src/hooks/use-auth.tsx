@@ -16,6 +16,8 @@ import {
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import type { LoginFormData, SignupFormData } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+import { useTranslations } from 'next-intl';
 
 type AuthResponse = {
   success: boolean;
