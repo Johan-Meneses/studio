@@ -47,15 +47,15 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginFormData) => {
-    const error = await login(data);
-    if (error) {
+    const { success, error } = await login(data);
+    if (success) {
+      router.push('/dashboard');
+    } else {
       toast({
         variant: 'destructive',
         title: tToast('loginFailed'),
         description: error,
       });
-    } else {
-      router.push('/dashboard');
     }
   };
 

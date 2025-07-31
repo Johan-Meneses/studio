@@ -28,8 +28,8 @@ export function AppSidebar() {
     { href: '/categories', label: t('categories'), icon: Tags },
   ];
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push('/login');
   }
 

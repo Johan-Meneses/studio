@@ -49,15 +49,15 @@ export default function SignupPage() {
     });
 
     const onSubmit = async (data: SignupFormData) => {
-      const error = await signup(data);
-      if (error) {
+      const { success, error } = await signup(data);
+      if (success) {
+        router.push('/dashboard');
+      } else {
         toast({
             variant: 'destructive',
             title: tToast('signupFailed'),
             description: error,
         });
-      } else {
-        router.push('/dashboard');
       }
     };
 

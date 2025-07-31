@@ -1,26 +1,39 @@
+'use client';
+
 import type { Metadata } from 'next';
-import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
+import { NextIntlClientProvider, useMessages } from 'next-intl';
+import React from 'react';
 import '../globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider, ProtectedLayout } from '@/hooks/use-auth';
+import { useLocale } from 'next-intl';
 
-export const metadata: Metadata = {
-  title: 'BudgetView',
-  description: 'Your personal budget manager.',
-};
-
-export default async function LocaleLayout({
+export default function LocaleLayout({
   children,
-  params: { locale },
+  params,
 }: {
   children: React.ReactNode;
   params: { locale: string };
 }) {
-  const messages = await getMessages();
+  const locale = useLocale();
+  const messages = useMessages();
+  // Ensure the locale from params is used if available, otherwise fallback to the one from the hook.
+  const finalLocale = params.locale || locale;
+
+  if (!messages) {
+    return (
+      <html lang={finalLocale}>
+        <body>
+          <div className="flex h-screen items-center justify-center">
+            Loading...
+          </div>
+        </body>
+      </html>
+    );
+  }
 
   return (
-    <html lang={locale}>
+    <html lang={finalLocale}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -35,10 +48,11 @@ export default async function LocaleLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-          <NextIntlClientProvider messages={messages}>
-            <ProtectedLayout>
-              {children}
-            </ProtectedLayout>
+          <NextIntlClientProvider
+            locale={finalLocale}
+            messages={messages}
+          >
+            <ProtectedLayout>{children}</ProtectedLayout>
             <Toaster />
           </NextIntlClientProvider>
         </AuthProvider>

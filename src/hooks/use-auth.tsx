@@ -19,13 +19,17 @@ import { useRouter, usePathname } from 'next-intl/navigation';
 import type { LoginFormData, SignupFormData } from '@/lib/types';
 import { useTranslations } from 'next-intl';
 
+type AuthResponse = {
+  success: boolean;
+  error?: string;
+}
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (data: LoginFormData) => Promise<string | null>;
-  signup: (data: SignupFormData) => Promise<string | null>;
-  logout: () => void;
+  login: (data: LoginFormData) => Promise<AuthResponse>;
+  signup: (data: SignupFormData) => Promise<AuthResponse>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,26 +46,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const login = async ({ email, password }: LoginFormData) => {
+  const login = async ({ email, password }: LoginFormData): Promise<AuthResponse> => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      return null;
+      return { success: true };
     } catch (error: any) {
-      return error.message;
+      return { success: false, error: error.message };
     }
   };
 
-  const signup = async ({ email, password }: SignupFormData) => {
+  const signup = async ({ email, password }: SignupFormData): Promise<AuthResponse> => {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      return null;
+      return { success: true };
     } catch (error: any) {
-      return error.message;
+      return { success: false, error: error.message };
     }
   };
 
-  const logout = () => {
-    firebaseSignOut(auth);
+  const logout = async () => {
+    try {
+      await firebaseSignOut(auth);
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
   const value = {
@@ -93,6 +101,9 @@ export function ProtectedLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!loading && !user && !isAuthPage) {
       router.replace('/login');
+    }
+    if (!loading && user && isAuthPage) {
+        router.replace('/dashboard');
     }
   }, [user, loading, router, pathname, isAuthPage]);
 
