@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Logo } from './logo';
+import { useAuth } from '@/hooks/use-auth';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -22,6 +23,7 @@ const navItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   return (
     <div className="hidden border-r bg-card md:block">
@@ -49,14 +51,14 @@ export function AppSidebar() {
         <div className="mt-auto p-4 border-t">
             <div className="flex items-center gap-3">
                 <Avatar className="h-9 w-9">
-                    <AvatarImage src="https://placehold.co/100x100.png" alt="@shadcn" data-ai-hint="person" />
-                    <AvatarFallback>JP</AvatarFallback>
+                    <AvatarImage src={user?.photoURL || "https://placehold.co/100x100.png"} alt="User avatar" data-ai-hint="person" />
+                    <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 truncate">
-                    <p className="font-medium leading-none">John Doe</p>
-                    <p className="text-xs text-muted-foreground truncate">john.doe@example.com</p>
+                    <p className="font-medium leading-none">{user?.displayName || 'Welcome'}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                 </div>
-                <Button variant="ghost" size="icon" className="ml-auto">
+                <Button variant="ghost" size="icon" className="ml-auto" onClick={logout}>
                     <LogOut className="h-4 w-4" />
                     <span className="sr-only">Logout</span>
                 </Button>
