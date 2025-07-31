@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -19,7 +19,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { MainLayout } from '@/components/main-layout';
 import { PageHeader } from '@/components/page-header';
-import { mockCategories } from '@/lib/data';
 import type { Category } from '@/lib/types';
 import { PlusCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import {
@@ -40,10 +39,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
+import { db } from '@/lib/firebase';
+import { collection, query, where, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 function CategoryDialog({ category, onSave, children }: { category?: Category | null, onSave: (name: string) => void, children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(category?.name || '');
+
+  useEffect(() => {
+    if (open) {
+      setName(category?.name || '');
+    }
+  }, [open, category]);
 
   const handleSave = () => {
     onSave(name);
@@ -83,28 +91,56 @@ function CategoryDialog({ category, onSave, children }: { category?: Category | 
 }
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState(mockCategories);
+  const [categories, setCategories] = useState<Category[]>([]);
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const handleAddCategory = (name: string) => {
-    const newCategory: Category = {
-      id: (categories.length + 1).toString(),
-      name,
-      userId: 'user1',
-    };
-    setCategories([...categories, newCategory]);
-    toast({ title: "Category Added", description: `"${name}" has been added.` });
+  useEffect(() => {
+    if (!user) return;
+
+    const q = query(collection(db, 'categories'), where('userId', '==', user.uid));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const userCategories: Category[] = [];
+      querySnapshot.forEach((doc) => {
+        userCategories.push({ id: doc.id, ...doc.data() } as Category);
+      });
+      setCategories(userCategories);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleAddCategory = async (name: string) => {
+    if (!user) return;
+    try {
+      await addDoc(collection(db, 'categories'), {
+        name,
+        userId: user.uid,
+      });
+      toast({ title: "Category Added", description: `"${name}" has been added.` });
+    } catch (error) {
+       toast({ title: "Error", description: "Failed to add category.", variant: "destructive" });
+    }
   };
 
-  const handleEditCategory = (id: string, name: string) => {
-    setCategories(categories.map(c => c.id === id ? { ...c, name } : c));
-     toast({ title: "Category Updated", description: `Category has been updated to "${name}".` });
+  const handleEditCategory = async (id: string, name: string) => {
+    try {
+        const categoryRef = doc(db, 'categories', id);
+        await updateDoc(categoryRef, { name });
+        toast({ title: "Category Updated", description: `Category has been updated to "${name}".` });
+    } catch (error) {
+        toast({ title: "Error", description: "Failed to update category.", variant: "destructive" });
+    }
   };
   
-  const handleDeleteCategory = (id: string) => {
-    const categoryName = categories.find(c => c.id === id)?.name;
-    setCategories(categories.filter(c => c.id !== id));
-    toast({ title: "Category Deleted", description: `"${categoryName}" has been deleted.` });
+  const handleDeleteCategory = async (id: string) => {
+    try {
+        const categoryName = categories.find(c => c.id === id)?.name;
+        await deleteDoc(doc(db, 'categories', id));
+        toast({ title: "Category Deleted", description: `"${categoryName}" has been deleted.` });
+    } catch (error) {
+        toast({ title: "Error", description: "Failed to delete category.", variant: "destructive" });
+    }
   };
 
 
