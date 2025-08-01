@@ -11,9 +11,7 @@ export function ProtectedLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const t = useTranslations('ProtectedLayout');
   
-  // A basic check for auth pages to avoid redirect loops.
-  // This might need to be more robust in a real app.
-  const isAuthPage = pathname.endsWith('/login') || pathname.endsWith('/signup');
+  const isAuthPage = pathname.includes('/login') || pathname.includes('/signup');
 
   useEffect(() => {
     if (loading) return;

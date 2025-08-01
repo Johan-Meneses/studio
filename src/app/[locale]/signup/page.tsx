@@ -1,6 +1,7 @@
 'use client';
 
-import { Link, useRouter } from 'next-intl/navigation';
+import { Link } from 'next-intl/navigation';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
