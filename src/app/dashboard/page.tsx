@@ -191,13 +191,13 @@ export default function DashboardPage() {
           title="Ingresos Totales"
           value={formatCurrency(monthlySummary.totalIncome)}
           icon={Landmark}
-          description="Ingresos de este mes"
+          description={`+ ${formatCurrency(monthlySummary.totalIncome)} este mes`}
         />
         <SummaryCard
           title="Gastos Totales"
           value={formatCurrency(monthlySummary.totalExpense)}
           icon={ShoppingBag}
-          description="Gastos de este mes"
+          description={`+ ${formatCurrency(monthlySummary.totalExpense)} este mes`}
         />
         <SummaryCard
           title="Saldo"
