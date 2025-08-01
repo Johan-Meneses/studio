@@ -45,7 +45,7 @@ import { collection, query, where, onSnapshot, addDoc, doc, updateDoc, deleteDoc
 
 function CategoryDialog({ category, onSave, children }: { category?: Category | null, onSave: (name: string) => void, children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState(category?.name || '');
+  const [name, setName] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -54,8 +54,10 @@ function CategoryDialog({ category, onSave, children }: { category?: Category | 
   }, [open, category]);
 
   const handleSave = () => {
-    onSave(name);
-    setOpen(false);
+    if (name.trim()) {
+      onSave(name.trim());
+      setOpen(false);
+    }
   };
 
   return (
