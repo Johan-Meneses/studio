@@ -2,7 +2,7 @@
 
 import { useEffect, type ReactNode } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { useRouter, usePathname } from 'next-intl/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
 export function ProtectedLayout({ children }: { children: ReactNode }) {
@@ -21,11 +21,8 @@ export function ProtectedLayout({ children }: { children: ReactNode }) {
     if (user && isAuthPage) {
       router.replace('/dashboard');
     }
-    // Las dependencias están perfectas
   }, [user, loading, router, pathname, isAuthPage]);
 
-  // 👇 ESTA ES LA LÍNEA MODIFICADA
-  // Ahora también cubre el caso en que un usuario logueado está en una página de auth
   if (loading || (!user && !isAuthPage) || (user && isAuthPage)) {
     return (
       <div className="flex min-h-screen items-center justify-center">

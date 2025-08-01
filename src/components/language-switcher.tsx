@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale } from 'next-intl';
-import { useRouter, usePathname } from 'next-intl/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,20 +10,24 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Languages } from 'lucide-react';
+import { useTransition } from 'react';
 
 export function LanguageSwitcher() {
+  const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const pathname = usePathname();
   const locale = useLocale();
 
   const changeLocale = (nextLocale: string) => {
-    router.replace(pathname, { locale: nextLocale });
+    startTransition(() => {
+        router.replace(pathname, { locale: nextLocale });
+    });
   };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon">
+        <Button variant="outline" size="icon" disabled={isPending}>
           <Languages className="h-4 w-4" />
           <span className="sr-only">Change language</span>
         </Button>
@@ -31,13 +35,13 @@ export function LanguageSwitcher() {
       <DropdownMenuContent align="end">
         <DropdownMenuItem
           onClick={() => changeLocale('en')}
-          disabled={locale === 'en'}
+          disabled={locale === 'en' || isPending}
         >
           English
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => changeLocale('es')}
-          disabled={locale === 'es'}
+          disabled={locale === 'es' || isPending}
         >
           Español
         </DropdownMenuItem>
