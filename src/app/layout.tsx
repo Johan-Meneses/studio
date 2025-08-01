@@ -1,12 +1,35 @@
-import type { Metadata } from 'next';
+import React from 'react';
+import './globals.css';
+import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from '@/hooks/use-auth';
+import { ProtectedLayout } from '@/components/protected-layout';
 
-// This layout is intentionally left blank and is used to generate the root layout.
-// The actual layout is in `src/app/[locale]/layout.tsx`.
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return children;
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+
+  return (
+    <html lang="es">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="font-body antialiased">
+          <AuthProvider>
+            <ProtectedLayout>{children}</ProtectedLayout>
+            <Toaster />
+          </AuthProvider>
+      </body>
+    </html>
+  );
 }
-
-export const metadata: Metadata = {
-  title: 'BudgetView',
-  description: 'Your personal budget manager.',
-};

@@ -1,6 +1,6 @@
 'use client';
 
-import { Link, useRouter } from 'next-intl/navigation';
+import { useRouter, Link } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -24,17 +24,14 @@ import {
 } from '@/components/ui/form';
 import { useAuth } from '@/hooks/use-auth';
 import type { LoginFormData } from '@/lib/types';
-import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 
 const loginSchema = z.object({
-  email: z.string().email('Invalid email address.'),
-  password: z.string().min(6, 'Password must be at least 6 characters.'),
+  email: z.string().email('Correo electrónico inválido.'),
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres.'),
 });
 
 export default function LoginPage() {
-  const t = useTranslations('LoginPage');
-  const tToast = useTranslations('Toasts');
   const { login } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -53,7 +50,7 @@ export default function LoginPage() {
     } else {
       toast({
         variant: 'destructive',
-        title: tToast('loginFailed'),
+        title: 'Falló el inicio de sesión',
         description: error,
       });
     }
@@ -64,8 +61,8 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <Logo className="mb-4" />
-          <CardTitle className="text-2xl font-headline">{t('title')}</CardTitle>
-          <CardDescription>{t('description')}</CardDescription>
+          <CardTitle className="text-2xl font-headline">Iniciar Sesión</CardTitle>
+          <CardDescription>Ingresa tu correo electrónico para acceder a tu cuenta</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -75,12 +72,12 @@ export default function LoginPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <Label htmlFor="email">{t('emailLabel')}</Label>
+                    <Label htmlFor="email">Correo Electrónico</Label>
                     <FormControl>
                       <Input
                         id="email"
                         type="email"
-                        placeholder={t('emailPlaceholder')}
+                        placeholder="m@ejemplo.com"
                         {...field}
                       />
                     </FormControl>
@@ -94,12 +91,12 @@ export default function LoginPage() {
                 render={({ field }) => (
                   <FormItem>
                      <div className="flex items-center">
-                        <Label htmlFor="password">{t('passwordLabel')}</Label>
+                        <Label htmlFor="password">Contraseña</Label>
                         <Link
                           href="/#"
                           className="ml-auto inline-block text-sm underline"
                         >
-                          {t('forgotPasswordLink')}
+                          ¿Olvidaste tu contraseña?
                         </Link>
                       </div>
                     <FormControl>
@@ -110,17 +107,17 @@ export default function LoginPage() {
                 )}
               />
               <Button type="submit" className="w-full">
-                {t('loginButton')}
+                Iniciar Sesión
               </Button>
               <Button variant="outline" className="w-full" type="button">
-                {t('googleLoginButton')}
+                Iniciar Sesión con Google
               </Button>
             </form>
           </Form>
           <div className="mt-4 text-center text-sm">
-            {t('signupPrompt')}{' '}
+            ¿No tienes una cuenta?{' '}
             <Link href="/signup" className="underline">
-              {t('signupLink')}
+              Regístrate
             </Link>
           </div>
         </CardContent>
