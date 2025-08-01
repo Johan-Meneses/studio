@@ -85,7 +85,7 @@ function CategoryDialog({ category, onSave, children }: { category?: Category | 
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={handleSave}>Guardar cambios</Button>
+          <Button onClick={handleSave} disabled={!name.trim()}>Guardar cambios</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
