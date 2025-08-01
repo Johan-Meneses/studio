@@ -76,6 +76,7 @@ export default function ReportsPage() {
     income: { label: 'Ingresos', color: "hsl(var(--chart-1))" },
     expense: { label: 'Gastos', color: "hsl(var(--chart-2))" },
   }
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
 
   return (
     <MainLayout>
@@ -95,8 +96,8 @@ export default function ReportsPage() {
                 <BarChart data={mockMonthlyTrends}>
                   <CartesianGrid vertical={false} />
                   <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} />
-                  <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `$${value/1000}k`} />
-                  <Tooltip content={<ChartTooltipContent />} />
+                  <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `$${Number(value) / 1000000}M`} />
+                  <Tooltip content={<ChartTooltipContent formatter={(value, name) => <div><p>{name}</p><p>{formatCurrency(value as number)}</p></div>} />} />
                   <Legend />
                   <Bar dataKey="income" fill="var(--color-income)" radius={4} />
                   <Bar dataKey="expense" fill="var(--color-expense)" radius={4} />
@@ -115,7 +116,7 @@ export default function ReportsPage() {
             <ChartContainer config={{}} className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Tooltip content={<ChartTooltipContent nameKey="name" />} />
+                  <Tooltip content={<ChartTooltipContent nameKey="name" formatter={(value) => formatCurrency(value as number)} />} />
                   <Pie
                     data={mockAnnualDistribution}
                     dataKey="value"

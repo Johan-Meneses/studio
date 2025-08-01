@@ -47,7 +47,7 @@ function SummaryCard({ title, value, icon: Icon, description }: { title: string;
 }
 
 export default function DashboardPage() {
-    const formatCurrency = (amount: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(amount);
+    const formatCurrency = (amount: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
 
   return (
     <MainLayout>
@@ -56,8 +56,8 @@ export default function DashboardPage() {
       </PageHeader>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <SummaryCard title="Ingresos Totales" value={formatCurrency(mockMonthlySummary.totalIncome)} icon={Landmark} description={`+ ${formatCurrency(500)} este mes`} />
-          <SummaryCard title="Gastos Totales" value={formatCurrency(mockMonthlySummary.totalExpense)} icon={ShoppingBag} description={`+ ${formatCurrency(120)} este mes`} />
+          <SummaryCard title="Ingresos Totales" value={formatCurrency(mockMonthlySummary.totalIncome)} icon={Landmark} description={`+ ${formatCurrency(mockTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0))} este mes`} />
+          <SummaryCard title="Gastos Totales" value={formatCurrency(mockMonthlySummary.totalExpense)} icon={ShoppingBag} description={`+ ${formatCurrency(mockTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0))} este mes`} />
           <SummaryCard title="Saldo" value={formatCurrency(mockMonthlySummary.balance)} icon={Wallet} description="Tu saldo actual" />
       </div>
 
@@ -115,7 +115,7 @@ export default function DashboardPage() {
                          <BarChart data={mockExpenseByCategory} layout="vertical" margin={{ left: 10, right: 10 }}>
                             <XAxis type="number" hide />
                             <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} width={80} />
-                            <Tooltip cursor={{ fill: 'hsl(var(--muted))' }} content={<ChartTooltipContent />} />
+                            <Tooltip cursor={{ fill: 'hsl(var(--muted))' }} content={<ChartTooltipContent formatter={(value) => formatCurrency(value as number)} />} />
                             <Bar dataKey="value" radius={[0, 4, 4, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
