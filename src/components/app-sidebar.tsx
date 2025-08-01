@@ -1,7 +1,7 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
-import { Link, useRouter } from 'next-intl/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { Link } from 'next-intl/navigation';
 import {
   BarChart3,
   LayoutDashboard,
