@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
   BarChart3,
@@ -13,8 +13,9 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Logo } from './logo';
 import { useAuth } from '@/hooks/use-auth';
+import { useRouter } from 'next/navigation';
 
-export function AppSidebar() {
+export function AppSidebarContent() {
   const currentPathname = usePathname();
   const { user, logout } = useAuth();
   const router = useRouter();
@@ -29,13 +30,9 @@ export function AppSidebar() {
     await logout();
     router.push('/login');
   }
-
+  
   return (
-    <div className="hidden border-r bg-card md:block">
-      <div className="flex h-full max-h-screen flex-col gap-2">
-        <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-          <Logo />
-        </div>
+    <>
         <div className="flex-1">
           <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
             {navItems.map((item) => (
@@ -69,6 +66,19 @@ export function AppSidebar() {
                 </Button>
             </div>
         </div>
+    </>
+  )
+}
+
+
+export function AppSidebar() {
+  return (
+    <div className="hidden border-r bg-card md:block">
+      <div className="flex h-full max-h-screen flex-col gap-2">
+        <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+          <Logo />
+        </div>
+        <AppSidebarContent />
       </div>
     </div>
   );

@@ -220,7 +220,7 @@ export default function DashboardPage() {
                   <TableHead>Descripción</TableHead>
                   <TableHead>Categoría</TableHead>
                   <TableHead className="text-right">Monto</TableHead>
-                  <TableHead className="hidden md:table-cell">Fecha</TableHead>
+                  <TableHead className="hidden sm:table-cell">Fecha</TableHead>
                   <TableHead>
                     <span className="sr-only">Acciones</span>
                   </TableHead>
@@ -245,7 +245,7 @@ export default function DashboardPage() {
                     >
                       {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
+                    <TableCell className="hidden sm:table-cell">
                       {format(new Date(transaction.date), 'dd MMM, yyyy')}
                     </TableCell>
                     <TableCell className="text-right">
