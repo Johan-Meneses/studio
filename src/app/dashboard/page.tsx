@@ -22,7 +22,7 @@ import { PageHeader } from '@/components/page-header';
 import { AddTransactionDialog } from '@/components/add-transaction-dialog';
 import { Landmark, ShoppingBag, Wallet, Pencil, Trash2, MoreHorizontal } from 'lucide-react';
 import { format } from 'date-fns';
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
@@ -66,6 +66,14 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+
+  const COLORS = [
+    "hsl(var(--chart-1))",
+    "hsl(var(--chart-2))",
+    "hsl(var(--chart-3))",
+    "hsl(var(--chart-4))",
+    "hsl(var(--chart-5))",
+  ];
 
   useEffect(() => {
     if (!user) return;
@@ -140,7 +148,7 @@ export default function DashboardPage() {
       return acc;
     }, {} as { [key: string]: number });
 
-    return Object.entries(distribution).map(([name, value]) => ({ name, value, fill: 'var(--chart-1)' }));
+    return Object.entries(distribution).map(([name, value], index) => ({ name, value, fill: COLORS[index % COLORS.length] }));
   }, [transactions, categories]);
 
 
@@ -291,7 +299,11 @@ export default function DashboardPage() {
                     cursor={{ fill: 'hsl(var(--muted))' }}
                     content={<ChartTooltipContent formatter={(value) => formatCurrency(value as number)} />}
                   />
-                  <Bar dataKey="value" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                    {expenseByCategory.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
