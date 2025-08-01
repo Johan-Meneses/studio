@@ -2,7 +2,7 @@
 
 import { useEffect, type ReactNode } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
 export function ProtectedLayout({ children }: { children: ReactNode }) {
@@ -10,7 +10,10 @@ export function ProtectedLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const t = useTranslations('ProtectedLayout');
-  const isAuthPage = pathname.includes('/login') || pathname.includes('/signup');
+  
+  // A basic check for auth pages to avoid redirect loops.
+  // This might need to be more robust in a real app.
+  const isAuthPage = pathname.endsWith('/login') || pathname.endsWith('/signup');
 
   useEffect(() => {
     if (loading) return;

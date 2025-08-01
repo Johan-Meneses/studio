@@ -13,8 +13,6 @@ export default async function LocaleLayout({
   children: React.ReactNode;
   params: { locale: string };
 }) {
-  // Providing all messages to the client
-  // side is a good default.
   const messages = await getMessages();
 
   return (
