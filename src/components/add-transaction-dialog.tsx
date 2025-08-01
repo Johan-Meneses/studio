@@ -1,17 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import {
-  Bot,
-  Calendar as CalendarIcon,
-  Loader2,
-  PlusCircle,
-} from 'lucide-react';
-
+import { Bot, Calendar as CalendarIcon, Loader2, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -32,11 +26,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -46,8 +36,12 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { mockCategories } from '@/lib/data';
 import { suggestCategory } from '@/ai/flows/categorize-transaction';
+import type { Category, Transaction } from '@/lib/types';
+import { useAuth } from '@/hooks/use-auth';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+
 
 const transactionSchema = z.object({
   description: z.string().min(1, 'La descripción es obligatoria.'),
@@ -59,10 +53,18 @@ const transactionSchema = z.object({
 
 type TransactionFormValues = z.infer<typeof transactionSchema>;
 
-export function AddTransactionDialog() {
+type AddTransactionDialogProps = {
+    children?: React.ReactNode,
+    transaction?: Transaction | null,
+    categories: Category[]
+}
+
+export function AddTransactionDialog({ children, transaction, categories }: AddTransactionDialogProps) {
   const [open, setOpen] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isEditing = !!transaction;
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
@@ -74,6 +76,24 @@ export function AddTransactionDialog() {
       category: '',
     },
   });
+
+  useEffect(() => {
+    if (open && isEditing) {
+      form.reset({
+        ...transaction,
+        amount: transaction.amount,
+      });
+    } else if (open && !isEditing) {
+      form.reset({
+        description: '',
+        amount: 0,
+        date: new Date(),
+        type: 'expense',
+        category: '',
+      });
+    }
+  }, [open, transaction, isEditing, form]);
+
 
   const handleSuggestCategory = async () => {
     const description = form.getValues('description');
@@ -89,13 +109,25 @@ export function AddTransactionDialog() {
     try {
       const result = await suggestCategory({
         description,
-        availableCategories: mockCategories.map((c) => c.name),
+        availableCategories: categories.map((c) => c.name),
       });
-      form.setValue('category', result.suggestedCategory, { shouldValidate: true });
-      toast({
-        title: 'Categoría Sugerida',
-        description: `Sugerimos "${result.suggestedCategory}" con un ${Math.round(result.confidence * 100)}% de confianza.`,
-      });
+
+      const suggestedCategory = categories.find(c => c.name === result.suggestedCategory);
+
+      if (suggestedCategory) {
+        form.setValue('category', suggestedCategory.id, { shouldValidate: true });
+        toast({
+            title: 'Categoría Sugerida',
+            description: `Sugerimos "${result.suggestedCategory}" con un ${Math.round(result.confidence * 100)}% de confianza.`,
+        });
+      } else {
+         toast({
+            variant: 'destructive',
+            title: 'Sugerencia Fallida',
+            description: 'La categoría sugerida no existe.',
+        });
+      }
+      
     } catch (error) {
       console.error('Error suggesting category:', error);
       toast({
@@ -108,27 +140,54 @@ export function AddTransactionDialog() {
     }
   };
 
-  const onSubmit = (data: TransactionFormValues) => {
-    console.log(data);
-    toast({
-      title: 'Transacción Agregada',
-      description: `Se agregó exitosamente ${data.description}.`,
-    });
-    setOpen(false);
-    form.reset();
+  const onSubmit = async (data: TransactionFormValues) => {
+    if (!user) return;
+
+    try {
+        if(isEditing) {
+            const transactionRef = doc(db, 'transactions', transaction.id);
+            await updateDoc(transactionRef, {
+                ...data,
+            });
+            toast({
+                title: 'Transacción Actualizada',
+                description: `Se actualizó exitosamente ${data.description}.`,
+            });
+        } else {
+            await addDoc(collection(db, 'transactions'), {
+                ...data,
+                userId: user.uid,
+            });
+            toast({
+                title: 'Transacción Agregada',
+                description: `Se agregó exitosamente ${data.description}.`,
+            });
+        }
+      
+      setOpen(false);
+      form.reset();
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'No se pudo guardar la transacción.',
+        });
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Agregar Transacción
-        </Button>
+        {children || 
+            <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Agregar Transacción
+            </Button>
+        }
       </DialogTrigger>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>Agregar Nueva Transacción</DialogTitle>
+          <DialogTitle>{isEditing ? 'Editar' : 'Agregar'} Transacción</DialogTitle>
           <DialogDescription>
             Completa los detalles de tu transacción.
           </DialogDescription>
@@ -205,69 +264,70 @@ export function AddTransactionDialog() {
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
-               <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tipo</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona un tipo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="expense">Gasto</SelectItem>
+                        <SelectItem value="income">Ingreso</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categoría</FormLabel>
+                    <div className="flex gap-2">
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un tipo" />
+                            <SelectValue placeholder="Selecciona una categoría" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="expense">Gasto</SelectItem>
-                          <SelectItem value="income">Ingreso</SelectItem>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Categoría</FormLabel>
-                      <div className="flex gap-2">
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona una categoría" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {mockCategories.map((cat) => (
-                              <SelectItem key={cat.id} value={cat.name}>
-                                {cat.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                         <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={handleSuggestCategory}
-                            disabled={isSuggesting}
-                            aria-label="Sugerir Categoría"
-                          >
-                            {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4" />}
-                          </Button>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={handleSuggestCategory}
+                        disabled={isSuggesting}
+                        aria-label="Sugerir Categoría"
+                      >
+                        {isSuggesting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Bot className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
             <DialogFooter>
-              <Button type="submit">Agregar Transacción</Button>
+              <Button type="submit">{isEditing ? 'Guardar Cambios' : 'Agregar Transacción'}</Button>
             </DialogFooter>
           </form>
         </Form>
