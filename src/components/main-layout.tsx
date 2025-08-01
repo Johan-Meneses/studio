@@ -1,6 +1,6 @@
 import { AppSidebar, AppSidebarContent } from './app-sidebar';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Menu } from 'lucide-react';
 import { Logo } from './logo';
 
@@ -22,9 +22,10 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                         </Button>
                     </SheetTrigger>
                     <SheetContent side="left" className="flex flex-col p-0">
-                        <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+                       <SheetHeader className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+                            <SheetTitle className="sr-only">Menu</SheetTitle>
                             <Logo />
-                        </div>
+                        </SheetHeader>
                         <AppSidebarContent />
                     </SheetContent>
                 </Sheet>
