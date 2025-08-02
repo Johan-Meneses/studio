@@ -195,7 +195,7 @@ export default function ReportsPage() {
             <CardTitle>Tendencias Mensuales</CardTitle>
             <CardDescription>Ingresos vs. Gastos en los últimos 6 meses.</CardDescription>
           </CardHeader>
-          <CardContent className="h-[200px]">
+          <CardContent className="h-[220px]">
              <ChartContainer config={chartConfig} className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlyTrends} margin={{ top: 20, right: 10, bottom: 0, left: -25 }}>
@@ -228,7 +228,7 @@ export default function ReportsPage() {
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    outerRadius={50}
+                    outerRadius={60}
                     labelLine={false}
                     label={({
                       cx,
@@ -261,7 +261,7 @@ export default function ReportsPage() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Legend wrapperStyle={{fontSize: "9px", paddingTop: "5px"}}/>
+                  <Legend wrapperStyle={{fontSize: "10px", paddingTop: "5px"}}/>
                 </PieChart>
               </ResponsiveContainer>
             </ChartContainer>
