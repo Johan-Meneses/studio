@@ -195,13 +195,13 @@ export default function ReportsPage() {
             <CardTitle>Tendencias Mensuales</CardTitle>
             <CardDescription>Ingresos vs. Gastos en los últimos 6 meses.</CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[280px]">
              <ChartContainer config={chartConfig} className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyTrends} margin={{ top: 20, right: 10, bottom: 0, left: -20 }}>
+                <BarChart data={monthlyTrends} margin={{ top: 20, right: 10, bottom: 0, left: -25 }}>
                   <CartesianGrid vertical={false} />
-                  <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} tick={{ fontSize: 10 }} />
-                  <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `$${Number(value) / 1000000}M`} tick={{ fontSize: 10 }} />
+                  <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} tick={{ fontSize: 9 }} />
+                  <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `$${Number(value) / 1000000}M`} tick={{ fontSize: 9 }} />
                   <Tooltip content={<ChartTooltipContent formatter={(value, name) => <div><p className="capitalize">{name === 'income' ? 'Ingresos' : 'Gastos'}</p><p>{formatCurrency(value as number)}</p></div>} />} />
                   <Legend wrapperStyle={{fontSize: "12px", paddingTop: "10px"}} />
                   <Bar dataKey="income" fill="var(--color-income)" radius={4} />
@@ -217,7 +217,7 @@ export default function ReportsPage() {
             <CardTitle>Gastos Anuales</CardTitle>
             <CardDescription>Distribución de tus gastos por categoría en el período seleccionado.</CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px] flex items-center justify-center">
+          <CardContent className="h-[280px] flex items-center justify-center">
             <ChartContainer config={{}} className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -228,7 +228,7 @@ export default function ReportsPage() {
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    outerRadius={80}
+                    outerRadius={70}
                     labelLine={false}
                     label={({
                       cx,
@@ -261,7 +261,7 @@ export default function ReportsPage() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Legend wrapperStyle={{fontSize: "12px", paddingTop: "10px"}}/>
+                  <Legend wrapperStyle={{fontSize: "11px", paddingTop: "10px"}}/>
                 </PieChart>
               </ResponsiveContainer>
             </ChartContainer>
