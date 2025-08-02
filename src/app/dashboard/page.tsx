@@ -229,7 +229,7 @@ export default function DashboardPage() {
               <TableBody>
                 {transactions.slice(0, 5).map((transaction) => (
                   <TableRow key={transaction.id}>
-                    <TableCell className="font-medium truncate px-2">{transaction.description}</TableCell>
+                    <TableCell className="font-medium px-2">{transaction.description}</TableCell>
                     <TableCell className="px-2">
                       <Badge
                         variant={transaction.type === 'income' ? 'default' : 'secondary'}
