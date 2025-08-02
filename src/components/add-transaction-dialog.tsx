@@ -327,7 +327,7 @@ export function AddTransactionDialog({ children, transaction, categories }: AddT
               />
             </div>
             <DialogFooter>
-              <Button type="submit">{isEditing ? 'Guardar Cambios' : 'Agregar Transacción'}</Button>
+              <Button type="submit">{isEditing ? 'Guardar Cambios' : 'Agregar'}</Button>
             </DialogFooter>
           </form>
         </Form>
