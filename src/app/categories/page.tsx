@@ -166,7 +166,7 @@ export default function CategoriesPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nombre</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
+                <TableHead className="text-right"><span className="sm:hidden">Acciones</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

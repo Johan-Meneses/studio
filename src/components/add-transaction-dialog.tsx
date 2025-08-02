@@ -207,7 +207,7 @@ export function AddTransactionDialog({ children, transaction, categories }: AddT
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="amount"
@@ -263,7 +263,7 @@ export function AddTransactionDialog({ children, transaction, categories }: AddT
                 )}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="type"
