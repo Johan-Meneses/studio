@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -195,7 +196,7 @@ export default function ReportsPage() {
             <CardTitle>Tendencias Mensuales</CardTitle>
             <CardDescription>Ingresos vs. Gastos en los últimos 6 meses.</CardDescription>
           </CardHeader>
-          <CardContent className="h-[220px]">
+          <CardContent className="h-[200px]">
              <ChartContainer config={chartConfig} className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlyTrends} margin={{ top: 20, right: 10, bottom: 0, left: -25 }}>
@@ -203,7 +204,7 @@ export default function ReportsPage() {
                   <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} tick={{ fontSize: 7 }} />
                   <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `$${Number(value) / 1000000}M`} tick={{ fontSize: 7 }} />
                   <Tooltip content={<ChartTooltipContent formatter={(value, name) => <div><p className="capitalize">{name === 'income' ? 'Ingresos' : 'Gastos'}</p><p>{formatCurrency(value as number)}</p></div>} />} />
-                  <Legend wrapperStyle={{fontSize: "10px", paddingTop: "10px"}} />
+                  <Legend wrapperStyle={{fontSize: "9px"}} />
                   <Bar dataKey="income" fill="var(--color-income)" radius={4} />
                   <Bar dataKey="expense" fill="var(--color-expense)" radius={4} />
                 </BarChart>
@@ -217,7 +218,7 @@ export default function ReportsPage() {
             <CardTitle>Gastos Anuales</CardTitle>
             <CardDescription>Distribución de tus gastos por categoría en el período seleccionado.</CardDescription>
           </CardHeader>
-          <CardContent className="h-[220px] flex items-center justify-center">
+          <CardContent className="h-[200px] flex items-center justify-center">
             <ChartContainer config={{}} className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -228,7 +229,7 @@ export default function ReportsPage() {
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    outerRadius={60}
+                    outerRadius={50}
                     labelLine={false}
                     label={({
                       cx,
@@ -261,7 +262,7 @@ export default function ReportsPage() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Legend wrapperStyle={{fontSize: "10px", paddingTop: "5px"}}/>
+                  <Legend wrapperStyle={{fontSize: "9px"}}/>
                 </PieChart>
               </ResponsiveContainer>
             </ChartContainer>
