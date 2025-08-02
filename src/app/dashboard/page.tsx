@@ -218,9 +218,9 @@ export default function DashboardPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Descripción</TableHead>
-                  <TableHead>Categoría</TableHead>
+                  <TableHead className="hidden sm:table-cell">Categoría</TableHead>
                   <TableHead className="text-right">Monto</TableHead>
-                  <TableHead className="hidden sm:table-cell">Fecha</TableHead>
+                  <TableHead className="hidden md:table-cell">Fecha</TableHead>
                   <TableHead>
                     <span className="sr-only">Acciones</span>
                   </TableHead>
@@ -230,7 +230,7 @@ export default function DashboardPage() {
                 {transactions.slice(0, 5).map((transaction) => (
                   <TableRow key={transaction.id}>
                     <TableCell className="font-medium truncate max-w-[150px]">{transaction.description}</TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <Badge
                         variant={transaction.type === 'income' ? 'default' : 'secondary'}
                         className={transaction.type === 'income' ? 'bg-green-100 text-green-800' : ''}
@@ -245,7 +245,7 @@ export default function DashboardPage() {
                     >
                       {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell">
+                    <TableCell className="hidden md:table-cell">
                       {format(new Date(transaction.date), 'dd MMM, yyyy')}
                     </TableCell>
                     <TableCell className="text-right">
