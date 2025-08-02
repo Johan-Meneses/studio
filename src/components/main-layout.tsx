@@ -9,7 +9,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
       <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
         <AppSidebar />
         <div className="flex flex-col">
-            <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6 md:hidden">
+            <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
                  <Sheet>
                     <SheetTrigger asChild>
                         <Button
@@ -29,7 +29,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                         <AppSidebarContent />
                     </SheetContent>
                 </Sheet>
-                <div className="w-full flex-1">
+                <div className="w-full flex-1 md:hidden">
                     {/* Optional: Add mobile header content here */}
                 </div>
             </header>
