@@ -217,11 +217,11 @@ export default function DashboardPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Descripción</TableHead>
-                  <TableHead className="hidden sm:table-cell">Categoría</TableHead>
-                  <TableHead className="text-right">Monto</TableHead>
-                  <TableHead className="hidden md:table-cell">Fecha</TableHead>
-                  <TableHead>
+                  <TableHead className="px-2">Descripción</TableHead>
+                  <TableHead className="px-2">Categoría</TableHead>
+                  <TableHead className="text-right px-2">Monto</TableHead>
+                  <TableHead className="hidden md:table-cell px-2">Fecha</TableHead>
+                  <TableHead className="px-2">
                     <span className="sr-only">Acciones</span>
                   </TableHead>
                 </TableRow>
@@ -229,8 +229,8 @@ export default function DashboardPage() {
               <TableBody>
                 {transactions.slice(0, 5).map((transaction) => (
                   <TableRow key={transaction.id}>
-                    <TableCell className="font-medium truncate">{transaction.description}</TableCell>
-                    <TableCell className="hidden sm:table-cell">
+                    <TableCell className="font-medium truncate px-2">{transaction.description}</TableCell>
+                    <TableCell className="px-2">
                       <Badge
                         variant={transaction.type === 'income' ? 'default' : 'secondary'}
                         className={transaction.type === 'income' ? 'bg-green-100 text-green-800' : ''}
@@ -239,16 +239,16 @@ export default function DashboardPage() {
                       </Badge>
                     </TableCell>
                     <TableCell
-                      className={`text-right font-medium ${
+                      className={`text-right font-medium px-2 ${
                         transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
                       }`}
                     >
                       {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
+                    <TableCell className="hidden md:table-cell px-2">
                       {format(new Date(transaction.date), 'dd MMM, yyyy')}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right px-2">
                        <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0">

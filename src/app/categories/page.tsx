@@ -165,16 +165,15 @@ export default function CategoriesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead className="text-right hidden sm:table-cell">Acciones</TableHead>
-                <TableHead className="text-right sm:hidden"><span className="sr-only">Acciones</span></TableHead>
+                <TableHead className="px-2">Nombre</TableHead>
+                <TableHead className="text-right px-2">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {categories.map((category) => (
                 <TableRow key={category.id}>
-                  <TableCell className="font-medium">{category.name}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="font-medium px-2">{category.name}</TableCell>
+                  <TableCell className="text-right px-2">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
