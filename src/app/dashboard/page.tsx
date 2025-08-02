@@ -282,18 +282,18 @@ export default function DashboardPage() {
             <CardTitle>Distribución de Gastos</CardTitle>
             <CardDescription>Un vistazo a tus gastos por categoría este mes.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <ChartContainer config={{}} className="h-[240px] w-full">
+          <CardContent className="h-[220px]">
+            <ChartContainer config={{}} className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={expenseByCategory} layout="vertical" margin={{ left: -10, right: 10 }}>
+                <BarChart data={expenseByCategory} layout="vertical" margin={{ left: -15, right: 10 }}>
                   <XAxis type="number" hide />
                   <YAxis
                     dataKey="name"
                     type="category"
                     tickLine={false}
                     axisLine={false}
-                    tick={{ fontSize: 9 }}
-                    width={55}
+                    tick={{ fontSize: 8 }}
+                    width={50}
                   />
                   <Tooltip
                     cursor={{ fill: 'hsl(var(--muted))' }}

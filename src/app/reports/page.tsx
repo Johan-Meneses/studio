@@ -195,13 +195,13 @@ export default function ReportsPage() {
             <CardTitle>Tendencias Mensuales</CardTitle>
             <CardDescription>Ingresos vs. Gastos en los últimos 6 meses.</CardDescription>
           </CardHeader>
-          <CardContent className="h-[280px]">
+          <CardContent className="h-[250px]">
              <ChartContainer config={chartConfig} className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlyTrends} margin={{ top: 20, right: 10, bottom: 0, left: -25 }}>
                   <CartesianGrid vertical={false} />
-                  <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} tick={{ fontSize: 9 }} />
-                  <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `$${Number(value) / 1000000}M`} tick={{ fontSize: 9 }} />
+                  <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} tick={{ fontSize: 8 }} />
+                  <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `$${Number(value) / 1000000}M`} tick={{ fontSize: 8 }} />
                   <Tooltip content={<ChartTooltipContent formatter={(value, name) => <div><p className="capitalize">{name === 'income' ? 'Ingresos' : 'Gastos'}</p><p>{formatCurrency(value as number)}</p></div>} />} />
                   <Legend wrapperStyle={{fontSize: "12px", paddingTop: "10px"}} />
                   <Bar dataKey="income" fill="var(--color-income)" radius={4} />
@@ -228,7 +228,7 @@ export default function ReportsPage() {
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    outerRadius={70}
+                    outerRadius={60}
                     labelLine={false}
                     label={({
                       cx,
@@ -261,7 +261,7 @@ export default function ReportsPage() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Legend wrapperStyle={{fontSize: "11px", paddingTop: "10px"}}/>
+                  <Legend wrapperStyle={{fontSize: "10px", paddingTop: "10px"}}/>
                 </PieChart>
               </ResponsiveContainer>
             </ChartContainer>
