@@ -285,15 +285,15 @@ export default function DashboardPage() {
           <CardContent>
             <ChartContainer config={{}} className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={expenseByCategory} layout="vertical" margin={{ left: 10, right: 10 }}>
+                <BarChart data={expenseByCategory} layout="vertical" margin={{ left: 0, right: 10 }}>
                   <XAxis type="number" hide />
                   <YAxis
                     dataKey="name"
                     type="category"
                     tickLine={false}
                     axisLine={false}
-                    tick={{ fontSize: 12 }}
-                    width={80}
+                    tick={{ fontSize: 10, width: 100 }}
+                    width={60}
                   />
                   <Tooltip
                     cursor={{ fill: 'hsl(var(--muted))' }}

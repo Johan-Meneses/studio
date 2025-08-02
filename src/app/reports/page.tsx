@@ -198,10 +198,10 @@ export default function ReportsPage() {
           <CardContent className="h-[300px]">
              <ChartContainer config={chartConfig} className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyTrends}>
+                <BarChart data={monthlyTrends} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                   <CartesianGrid vertical={false} />
-                  <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} tick={{ fontSize: 12 }} />
-                  <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `$${Number(value) / 1000000}M`} />
+                  <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} tick={{ fontSize: 10 }} />
+                  <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `$${Number(value) / 1000000}M`} tick={{ fontSize: 10 }} />
                   <Tooltip content={<ChartTooltipContent formatter={(value, name) => <div><p className="capitalize">{name === 'income' ? 'Ingresos' : 'Gastos'}</p><p>{formatCurrency(value as number)}</p></div>} />} />
                   <Legend />
                   <Bar dataKey="income" fill="var(--color-income)" radius={4} />
@@ -228,8 +228,7 @@ export default function ReportsPage() {
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    outerRadius={100}
-                    innerRadius={60}
+                    outerRadius={80}
                     labelLine={false}
                     label={({
                       cx,
@@ -262,7 +261,7 @@ export default function ReportsPage() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Legend />
+                  <Legend wrapperStyle={{fontSize: "12px"}}/>
                 </PieChart>
               </ResponsiveContainer>
             </ChartContainer>
