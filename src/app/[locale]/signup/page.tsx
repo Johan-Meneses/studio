@@ -36,7 +36,7 @@ const signupSchema = z.object({
 export default function SignupPage() {
     const t = useTranslations('SignupPage');
     const tToast = useTranslations('Toasts');
-    const { signup } = useAuth();
+    const { signup, signInWithGoogle } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const form = useForm<SignupFormData>({
@@ -60,6 +60,20 @@ export default function SignupPage() {
         });
       }
     };
+
+    const handleGoogleSignup = async () => {
+      const { success, error } = await signInWithGoogle();
+      if (success) {
+        router.push('/dashboard');
+      } else {
+        toast({
+          variant: 'destructive',
+          title: tToast('signupFailed'),
+          description: error,
+        });
+      }
+    };
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -116,7 +130,7 @@ export default function SignupPage() {
                     <Button type="submit" className="w-full">
                         {t('createAccountButton')}
                     </Button>
-                    <Button variant="outline" className="w-full" type="button">
+                    <Button variant="outline" className="w-full" type="button" onClick={handleGoogleSignup}>
                         {t('googleSignupButton')}
                     </Button>
                  </form>

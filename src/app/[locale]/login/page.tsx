@@ -35,7 +35,7 @@ const loginSchema = z.object({
 export default function LoginPage() {
   const t = useTranslations('LoginPage');
   const tToast = useTranslations('Toasts');
-  const { login } = useAuth();
+  const { login, signInWithGoogle } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const form = useForm<LoginFormData>({
@@ -48,6 +48,19 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormData) => {
     const { success, error } = await login(data);
+    if (success) {
+      router.push('/dashboard');
+    } else {
+      toast({
+        variant: 'destructive',
+        title: tToast('loginFailed'),
+        description: error,
+      });
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    const { success, error } = await signInWithGoogle();
     if (success) {
       router.push('/dashboard');
     } else {
@@ -112,7 +125,7 @@ export default function LoginPage() {
               <Button type="submit" className="w-full">
                 {t('loginButton')}
               </Button>
-              <Button variant="outline" className="w-full" type="button">
+              <Button variant="outline" className="w-full" type="button" onClick={handleGoogleLogin}>
                 {t('googleLoginButton')}
               </Button>
             </form>

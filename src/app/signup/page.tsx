@@ -34,7 +34,7 @@ const signupSchema = z.object({
 });
 
 export default function SignupPage() {
-    const { signup } = useAuth();
+    const { signup, signInWithGoogle } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const form = useForm<SignupFormData>({
@@ -55,6 +55,19 @@ export default function SignupPage() {
             variant: 'destructive',
             title: 'Falló el registro',
             description: error,
+        });
+      }
+    };
+
+    const handleGoogleSignup = async () => {
+      const { success, error } = await signInWithGoogle();
+      if (success) {
+        router.push('/dashboard');
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Falló el registro',
+          description: error,
         });
       }
     };
@@ -114,7 +127,7 @@ export default function SignupPage() {
                     <Button type="submit" className="w-full">
                         Crear una cuenta
                     </Button>
-                    <Button variant="outline" className="w-full" type="button">
+                    <Button variant="outline" className="w-full" type="button" onClick={handleGoogleSignup}>
                         Registrarse con Google
                     </Button>
                  </form>

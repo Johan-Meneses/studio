@@ -13,11 +13,11 @@ import {
   signOut as firebaseSignOut,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import type { LoginFormData, SignupFormData } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
-import { useTranslations } from 'next-intl';
 
 type AuthResponse = {
   success: boolean;
@@ -30,6 +30,7 @@ interface AuthContextType {
   login: (data: LoginFormData) => Promise<AuthResponse>;
   signup: (data: SignupFormData) => Promise<AuthResponse>;
   logout: () => Promise<void>;
+  signInWithGoogle: () => Promise<AuthResponse>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -72,12 +73,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signInWithGoogle = async (): Promise<AuthResponse> => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  };
+
+
   const value = {
     user,
     loading,
     login,
     signup,
     logout,
+    signInWithGoogle,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

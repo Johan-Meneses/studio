@@ -33,7 +33,7 @@ const loginSchema = z.object({
 });
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, signInWithGoogle } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const form = useForm<LoginFormData>({
@@ -46,6 +46,19 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormData) => {
     const { success, error } = await login(data);
+    if (success) {
+      router.push('/dashboard');
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Falló el inicio de sesión',
+        description: error,
+      });
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    const { success, error } = await signInWithGoogle();
     if (success) {
       router.push('/dashboard');
     } else {
@@ -110,7 +123,7 @@ export default function LoginPage() {
               <Button type="submit" className="w-full">
                 Iniciar Sesión
               </Button>
-              <Button variant="outline" className="w-full" type="button">
+              <Button variant="outline" className="w-full" type="button" onClick={handleGoogleLogin}>
                 Iniciar Sesión con Google
               </Button>
             </form>
