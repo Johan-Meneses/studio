@@ -198,12 +198,12 @@ export default function ReportsPage() {
           <CardContent className="h-[300px]">
              <ChartContainer config={chartConfig} className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyTrends} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                <BarChart data={monthlyTrends} margin={{ top: 20, right: 10, bottom: 0, left: -20 }}>
                   <CartesianGrid vertical={false} />
                   <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} tick={{ fontSize: 10 }} />
                   <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `$${Number(value) / 1000000}M`} tick={{ fontSize: 10 }} />
                   <Tooltip content={<ChartTooltipContent formatter={(value, name) => <div><p className="capitalize">{name === 'income' ? 'Ingresos' : 'Gastos'}</p><p>{formatCurrency(value as number)}</p></div>} />} />
-                  <Legend />
+                  <Legend wrapperStyle={{fontSize: "12px", paddingTop: "10px"}} />
                   <Bar dataKey="income" fill="var(--color-income)" radius={4} />
                   <Bar dataKey="expense" fill="var(--color-expense)" radius={4} />
                 </BarChart>
@@ -261,7 +261,7 @@ export default function ReportsPage() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Legend wrapperStyle={{fontSize: "12px"}}/>
+                  <Legend wrapperStyle={{fontSize: "12px", paddingTop: "10px"}}/>
                 </PieChart>
               </ResponsiveContainer>
             </ChartContainer>

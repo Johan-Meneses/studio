@@ -221,7 +221,7 @@ export default function DashboardPage() {
                   <TableHead className="px-2">Categoría</TableHead>
                   <TableHead className="text-right px-2">Monto</TableHead>
                   <TableHead className="hidden md:table-cell px-2">Fecha</TableHead>
-                  <TableHead className="px-2">
+                  <TableHead className="px-2 text-right">
                     <span className="sr-only">Acciones</span>
                   </TableHead>
                 </TableRow>
@@ -292,7 +292,7 @@ export default function DashboardPage() {
                     type="category"
                     tickLine={false}
                     axisLine={false}
-                    tick={{ fontSize: 10, width: 100 }}
+                    tick={{ fontSize: 10 }}
                     width={60}
                   />
                   <Tooltip
