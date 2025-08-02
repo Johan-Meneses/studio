@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { Bot, Calendar as CalendarIcon, Loader2, PlusCircle } from 'lucide-react';
+import { Bot, Calendar as CalendarIcon, Loader2, PlusCircle, PlusSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -17,6 +17,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import {
   Form,
   FormControl,
@@ -57,6 +68,56 @@ type AddTransactionDialogProps = {
     children?: React.ReactNode,
     transaction?: Transaction | null,
     categories: Category[]
+}
+
+function AddCategoryAlert({ onCategoryAdded }: { onCategoryAdded: (id: string) => void }) {
+    const [name, setName] = useState('');
+    const { user } = useAuth();
+    const { toast } = useToast();
+    const [open, setOpen] = useState(false);
+
+    const handleAddCategory = async () => {
+        if (!user || !name.trim()) return;
+        try {
+        const docRef = await addDoc(collection(db, 'categories'), {
+            name,
+            userId: user.uid,
+        });
+        toast({ title: 'Categoría Agregada', description: `"${name}" ha sido agregada.` });
+        onCategoryAdded(docRef.id);
+        setName('');
+        setOpen(false);
+        } catch (error) {
+        toast({ title: 'Error', description: 'No se pudo agregar la categoría.', variant: "destructive" });
+        }
+    };
+
+    return (
+        <AlertDialog open={open} onOpenChange={setOpen}>
+            <AlertDialogTrigger asChild>
+                <Button type="button" variant="outline" size="icon" aria-label="Agregar Nueva Categoría">
+                    <PlusSquare className="h-4 w-4" />
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                <AlertDialogTitle>Agregar Nueva Categoría</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Crea una nueva categoría para organizar tus transacciones.
+                </AlertDialogDescription>
+                </AlertDialogHeader>
+                <Input
+                    placeholder="Ej., Viajes"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                />
+                <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleAddCategory} disabled={!name.trim()}>Guardar</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    )
 }
 
 export function AddTransactionDialog({ children, transaction, categories }: AddTransactionDialogProps) {
@@ -306,6 +367,7 @@ export function AddTransactionDialog({ children, transaction, categories }: AddT
                           ))}
                         </SelectContent>
                       </Select>
+                      <AddCategoryAlert onCategoryAdded={(id) => form.setValue('category', id, { shouldValidate: true })} />
                       <Button
                         type="button"
                         variant="outline"
