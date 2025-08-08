@@ -41,7 +41,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, doc, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 import type { Transaction, Category } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -75,32 +75,20 @@ export default function DashboardPage() {
         const transactionsQuery = query(collection(db, 'transactions'), where('userId', '==', user.uid));
         const categoriesQuery = query(collection(db, 'categories'), where('userId', '==', user.uid));
 
-        const unsubscribeTransactions = onSnapshot(transactionsQuery, async (snapshot) => {
-            const userTransactions: Transaction[] = [];
-            for (const doc of snapshot.docs) {
+        const unsubscribeTransactions = onSnapshot(transactionsQuery, (snapshot) => {
+            const userTransactions: Transaction[] = snapshot.docs.map(doc => {
                 const data = doc.data();
-                const transaction: Transaction = {
+                return {
                     id: doc.id,
                     ...data,
                     date: data.date.toDate(),
                 } as Transaction;
-
-                if (transaction.category) {
-                     const categoryDoc = await getDoc(doc(db, 'categories', transaction.category));
-                     if(categoryDoc.exists()) {
-                        transaction.categoryName = categoryDoc.data().name;
-                     }
-                }
-                userTransactions.push(transaction);
-            }
+            });
             setTransactions(userTransactions.sort((a, b) => b.date.getTime() - a.date.getTime()));
         });
 
         const unsubscribeCategories = onSnapshot(categoriesQuery, (snapshot) => {
-            const userCategories: Category[] = [];
-            snapshot.forEach((doc) => {
-                userCategories.push({ id: doc.id, ...doc.data() } as Category);
-            });
+            const userCategories: Category[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
             setCategories(userCategories);
         });
 
@@ -118,11 +106,15 @@ export default function DashboardPage() {
             toast({ title: 'Error', description: 'No se pudo eliminar la transacción.', variant: 'destructive' });
         }
     };
-    
-    const handleEditTransaction = (transaction: Transaction) => {
-        setEditingTransaction(transaction);
-    };
 
+    const transactionsWithCategoryNames = useMemo(() => {
+        const categoryMap = new Map(categories.map(c => [c.id, c.name]));
+        return transactions.map(t => ({
+            ...t,
+            categoryName: t.category ? categoryMap.get(t.category) || 'Sin Categoría' : 'Sin Categoría'
+        }));
+    }, [transactions, categories]);
+    
     const monthlySummary = useMemo(() => {
         const now = new Date();
         const currentMonthTransactions = transactions.filter(t => {
@@ -145,7 +137,7 @@ export default function DashboardPage() {
     
     const expenseByCategory = useMemo(() => {
         const now = new Date();
-        const expenseTransactions = transactions.filter(t =>
+        const expenseTransactions = transactionsWithCategoryNames.filter(t =>
             t.type === 'expense' &&
             new Date(t.date).getFullYear() === now.getFullYear() &&
             new Date(t.date).getMonth() === now.getMonth()
@@ -160,7 +152,7 @@ export default function DashboardPage() {
         return Object.entries(distribution)
             .map(([name, value]) => ({ name, value }))
             .sort((a, b) => b.value - a.value);
-    }, [transactions, categories]);
+    }, [transactionsWithCategoryNames]);
 
 
   return (
@@ -200,14 +192,14 @@ export default function DashboardPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {transactions.slice(0, 5).map((transaction) => (
+                        {transactionsWithCategoryNames.slice(0, 5).map((transaction) => (
                             <TableRow key={transaction.id}>
                                 <TableCell className="font-medium px-2 break-words">
                                   {transaction.description}
                                 </TableCell>
                                 <TableCell className="px-2">
                                     <Badge variant={transaction.type === 'income' ? 'default' : 'secondary'} className={transaction.type === 'income' ? 'bg-green-100 text-green-800' : ''}>
-                                        {transaction.categoryName || 'Sin Categoría'}
+                                        {transaction.categoryName}
                                     </Badge>
                                 </TableCell>
                                 <TableCell className={`text-right font-medium px-2 ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
