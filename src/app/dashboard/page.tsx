@@ -54,7 +54,7 @@ function SummaryCard({ title, value, icon: Icon, description }: { title: string;
 }
 
 export default function DashboardPage() {
-    const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    const formatCurrency = (amount: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(amount);
 
   return (
     <MainLayout>
@@ -63,8 +63,8 @@ export default function DashboardPage() {
       </PageHeader>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <SummaryCard title="Ingresos Totales" value={formatCurrency(mockMonthlySummary.totalIncome)} icon={Landmark} description="+ $500 este mes" />
-          <SummaryCard title="Gastos Totales" value={formatCurrency(mockMonthlySummary.totalExpense)} icon={ShoppingBag} description="+ $120 este mes" />
+          <SummaryCard title="Ingresos Totales" value={formatCurrency(mockMonthlySummary.totalIncome)} icon={Landmark} description="+ $500.000 este mes" />
+          <SummaryCard title="Gastos Totales" value={formatCurrency(mockMonthlySummary.totalExpense)} icon={ShoppingBag} description="+ $120.000 este mes" />
           <SummaryCard title="Saldo" value={formatCurrency(mockMonthlySummary.balance)} icon={Wallet} description="Tu saldo actual" />
       </div>
 

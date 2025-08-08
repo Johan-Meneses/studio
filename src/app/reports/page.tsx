@@ -95,7 +95,7 @@ export default function ReportsPage() {
                 <BarChart data={mockMonthlyTrends} margin={{ top: 5, right: 10, left: -25, bottom: 5 }}>
                   <CartesianGrid vertical={false} />
                   <XAxis dataKey="month" tickLine={false} tickMargin={5} axisLine={false} tick={{ fontSize: 7 }} />
-                  <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `$${value/1000}k`} tick={{ fontSize: 7 }} />
+                  <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `$${value/1000000}M`} tick={{ fontSize: 7 }} />
                   <Tooltip content={<ChartTooltipContent />} />
                   <Legend wrapperStyle={{ fontSize: "9px", paddingTop: "0px" }} />
                   <Bar dataKey="income" fill="var(--color-income)" radius={4} />
