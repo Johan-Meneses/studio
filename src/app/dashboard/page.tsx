@@ -68,6 +68,7 @@ export default function DashboardPage() {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
     const formatCurrency = (amount: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(amount);
 
@@ -160,8 +161,12 @@ export default function DashboardPage() {
   return (
     <MainLayout>
       <PageHeader title="Panel">
-        <AddTransactionDialog categories={categories} transaction={editingTransaction} onOpenChange={(isOpen) => !isOpen && setEditingTransaction(null)}>
-            <Button>
+         <AddTransactionDialog 
+            open={isAddDialogOpen} 
+            onOpenChange={setIsAddDialogOpen} 
+            categories={categories}
+          >
+            <Button onClick={() => setIsAddDialogOpen(true)}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Agregar Transacción
             </Button>
@@ -217,12 +222,10 @@ export default function DashboardPage() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                      <AddTransactionDialog categories={categories} transaction={transaction} onOpenChange={(isOpen) => !isOpen && setEditingTransaction(null)}>
-                                        <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
+                                        <DropdownMenuItem onSelect={() => setEditingTransaction(transaction)}>
                                             <Pencil className="mr-2 h-4 w-4" />
                                             <span>Editar</span>
-                                        </button>
-                                       </AddTransactionDialog>
+                                        </DropdownMenuItem>
                                       <DropdownMenuItem onClick={() => handleDeleteTransaction(transaction.id)} className="text-red-500 focus:text-red-500">
                                         <Trash2 className="mr-2 h-4 w-4" />
                                         <span>Eliminar</span>
@@ -236,6 +239,13 @@ export default function DashboardPage() {
                 </Table>
             </CardContent>
         </Card>
+        
+        <AddTransactionDialog 
+            open={!!editingTransaction} 
+            onOpenChange={(isOpen) => !isOpen && setEditingTransaction(null)}
+            transaction={editingTransaction} 
+            categories={categories}
+        />
 
         <Card className="lg:col-span-3">
             <CardHeader>

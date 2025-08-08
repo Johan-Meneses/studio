@@ -69,7 +69,8 @@ type AddTransactionDialogProps = {
     children?: React.ReactNode,
     transaction?: Transaction | null,
     categories: Category[],
-    onOpenChange?: (open: boolean) => void,
+    open: boolean,
+    onOpenChange: (open: boolean) => void,
 }
 
 function AddCategoryAlert({ onCategoryAdded }: { onCategoryAdded: (id: string) => void }) {
@@ -122,8 +123,7 @@ function AddCategoryAlert({ onCategoryAdded }: { onCategoryAdded: (id: string) =
     )
 }
 
-export function AddTransactionDialog({ children, transaction, categories, onOpenChange }: AddTransactionDialogProps) {
-  const [open, setOpen] = useState(false);
+export function AddTransactionDialog({ open, onOpenChange, children, transaction, categories }: AddTransactionDialogProps) {
   const [isSuggesting, setIsSuggesting] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -139,34 +139,28 @@ export function AddTransactionDialog({ children, transaction, categories, onOpen
       category: '',
     },
   });
-  
-  const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
-    if (onOpenChange) {
-      onOpenChange(newOpen);
-    }
-  };
 
   useEffect(() => {
-    if (transaction) {
-      setOpen(true);
-      form.reset({
-        description: transaction.description,
-        amount: transaction.amount,
-        date: new Date(transaction.date),
-        type: transaction.type,
-        category: transaction.category,
-      });
-    } else {
-       form.reset({
-        description: '',
-        amount: 0,
-        date: new Date(),
-        type: 'expense',
-        category: '',
-      });
+    if (open) {
+        if (transaction) {
+            form.reset({
+                description: transaction.description,
+                amount: transaction.amount,
+                date: new Date(transaction.date),
+                type: transaction.type,
+                category: transaction.category,
+            });
+        } else {
+            form.reset({
+                description: '',
+                amount: 0,
+                date: new Date(),
+                type: 'expense',
+                category: '',
+            });
+        }
     }
-  }, [transaction, form, open]);
+  }, [transaction, open, form]);
 
 
   const handleSuggestCategory = async () => {
@@ -218,7 +212,7 @@ export function AddTransactionDialog({ children, transaction, categories, onOpen
     if (!user) return;
 
     try {
-        if(isEditing) {
+        if(isEditing && transaction) {
             const transactionRef = doc(db, 'transactions', transaction.id);
             await updateDoc(transactionRef, {
                 ...data,
@@ -238,7 +232,7 @@ export function AddTransactionDialog({ children, transaction, categories, onOpen
             });
         }
       
-      handleOpenChange(false);
+      onOpenChange(false);
       form.reset();
     } catch (error) {
         toast({
@@ -250,15 +244,8 @@ export function AddTransactionDialog({ children, transaction, categories, onOpen
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {children || 
-            <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Agregar Transacción
-            </Button>
-        }
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar' : 'Agregar'} Transacción</DialogTitle>
