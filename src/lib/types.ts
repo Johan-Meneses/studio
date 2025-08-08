@@ -6,7 +6,8 @@ export type Transaction = {
   amount: number;
   date: Date;
   type: 'income' | 'expense';
-  category: string;
+  category: string; // This is the category ID
+  categoryName?: string; // This is the category name, optional
   userId: string;
 };
 

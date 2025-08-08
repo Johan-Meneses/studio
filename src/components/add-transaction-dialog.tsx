@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Bot, Calendar as CalendarIcon, Loader2, PlusCircle, PlusSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -51,7 +52,7 @@ import { suggestCategory } from '@/ai/flows/categorize-transaction';
 import type { Category, Transaction } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
 
 
 const transactionSchema = z.object({
@@ -67,7 +68,8 @@ type TransactionFormValues = z.infer<typeof transactionSchema>;
 type AddTransactionDialogProps = {
     children?: React.ReactNode,
     transaction?: Transaction | null,
-    categories: Category[]
+    categories: Category[],
+    onOpenChange?: (open: boolean) => void,
 }
 
 function AddCategoryAlert({ onCategoryAdded }: { onCategoryAdded: (id: string) => void }) {
@@ -120,12 +122,12 @@ function AddCategoryAlert({ onCategoryAdded }: { onCategoryAdded: (id: string) =
     )
 }
 
-export function AddTransactionDialog({ children, transaction, categories }: AddTransactionDialogProps) {
+export function AddTransactionDialog({ children, transaction, categories, onOpenChange }: AddTransactionDialogProps) {
   const [open, setOpen] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  const isEditing = !!transaction;
+  const isEditing = !!transaction?.id;
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
@@ -137,15 +139,26 @@ export function AddTransactionDialog({ children, transaction, categories }: AddT
       category: '',
     },
   });
+  
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (onOpenChange) {
+      onOpenChange(newOpen);
+    }
+  };
 
   useEffect(() => {
-    if (open && isEditing) {
+    if (transaction) {
+      setOpen(true);
       form.reset({
-        ...transaction,
+        description: transaction.description,
         amount: transaction.amount,
+        date: new Date(transaction.date),
+        type: transaction.type,
+        category: transaction.category,
       });
-    } else if (open && !isEditing) {
-      form.reset({
+    } else {
+       form.reset({
         description: '',
         amount: 0,
         date: new Date(),
@@ -153,7 +166,7 @@ export function AddTransactionDialog({ children, transaction, categories }: AddT
         category: '',
       });
     }
-  }, [open, transaction, isEditing, form]);
+  }, [transaction, form, open]);
 
 
   const handleSuggestCategory = async () => {
@@ -225,7 +238,7 @@ export function AddTransactionDialog({ children, transaction, categories }: AddT
             });
         }
       
-      setOpen(false);
+      handleOpenChange(false);
       form.reset();
     } catch (error) {
         toast({
@@ -237,7 +250,7 @@ export function AddTransactionDialog({ children, transaction, categories }: AddT
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {children || 
             <Button>
@@ -299,7 +312,7 @@ export function AddTransactionDialog({ children, transaction, categories }: AddT
                             )}
                           >
                             {field.value ? (
-                              format(field.value, 'PPP')
+                              format(field.value, 'PPP', { locale: es })
                             ) : (
                               <span>Elige una fecha</span>
                             )}
@@ -316,6 +329,7 @@ export function AddTransactionDialog({ children, transaction, categories }: AddT
                             date > new Date() || date < new Date('1900-01-01')
                           }
                           initialFocus
+                          locale={es}
                         />
                       </PopoverContent>
                     </Popover>

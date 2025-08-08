@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { DateRange } from 'react-day-picker';
 import {
   Card,
@@ -15,19 +15,21 @@ import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { mockMonthlyTrends, mockAnnualDistribution } from '@/lib/data';
-import { Bar, BarChart, CartesianGrid, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { useAuth } from '@/hooks/use-auth';
+import { db } from '@/lib/firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import type { Transaction, Category } from '@/lib/types';
 
 function DateRangePicker({
   className,
-}: React.HTMLAttributes<HTMLDivElement>) {
-  const [date, setDate] = useState<DateRange | undefined>({
-    from: new Date(2024, 0, 1),
-    to: new Date(2024, 6, 30),
-  });
+  date,
+  onDateChange,
+}: React.HTMLAttributes<HTMLDivElement> & { date: DateRange | undefined, onDateChange: (date: DateRange | undefined) => void }) {
 
   return (
     <div className={cn('grid gap-2', className)}>
@@ -45,14 +47,14 @@ function DateRangePicker({
             {date?.from ? (
               date.to ? (
                 <>
-                  {format(date.from, 'LLL dd, y')} -{' '}
-                  {format(date.to, 'LLL dd, y')}
+                  {format(date.from, 'dd LLL, y', { locale: es })} -{' '}
+                  {format(date.to, 'dd LLL, y', { locale: es })}
                 </>
               ) : (
-                format(date.from, 'LLL dd, y')
+                format(date.from, 'dd LLL, y', { locale: es })
               )
             ) : (
-              <span>Elige una fecha</span>
+              <span>Elige un rango de fechas</span>
             )}
           </Button>
         </PopoverTrigger>
@@ -62,8 +64,9 @@ function DateRangePicker({
             mode="range"
             defaultMonth={date?.from}
             selected={date}
-            onSelect={setDate}
+            onSelect={onDateChange}
             numberOfMonths={2}
+            locale={es}
           />
         </PopoverContent>
       </Popover>
@@ -71,7 +74,89 @@ function DateRangePicker({
   );
 }
 
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+
 export default function ReportsPage() {
+  const { user } = useAuth();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [date, setDate] = useState<DateRange | undefined>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date()),
+  });
+
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(amount);
+  
+  useEffect(() => {
+      if (!user) return;
+
+      const transactionsQuery = query(collection(db, 'transactions'), where('userId', '==', user.uid));
+      const categoriesQuery = query(collection(db, 'categories'), where('userId', '==', user.uid));
+
+      const unsubscribeTransactions = onSnapshot(transactionsQuery, (snapshot) => {
+          const userTransactions: Transaction[] = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+              date: doc.data().date.toDate(),
+          } as Transaction));
+          setTransactions(userTransactions);
+      });
+
+      const unsubscribeCategories = onSnapshot(categoriesQuery, (snapshot) => {
+          const userCategories: Category[] = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+          } as Category));
+          setCategories(userCategories);
+      });
+
+      return () => {
+          unsubscribeTransactions();
+          unsubscribeCategories();
+      };
+  }, [user]);
+
+  const filteredTransactions = useMemo(() => {
+    if (!date?.from) return [];
+    const fromDate = date.from;
+    const toDate = date.to || fromDate;
+    
+    return transactions.filter(t => {
+      const tDate = new Date(t.date);
+      return tDate >= fromDate && tDate <= toDate;
+    });
+  }, [transactions, date]);
+
+  const monthlyTrends = useMemo(() => {
+      const trends: { [key: string]: { income: number; expense: number } } = {};
+      
+      filteredTransactions.forEach(t => {
+          const month = format(new Date(t.date), 'MMM yyyy', { locale: es });
+          if (!trends[month]) {
+              trends[month] = { income: 0, expense: 0 };
+          }
+          if (t.type === 'income') {
+              trends[month].income += t.amount;
+          } else {
+              trends[month].expense += t.amount;
+          }
+      });
+
+      return Object.entries(trends).map(([month, values]) => ({ month, ...values }));
+  }, [filteredTransactions]);
+
+  const expenseDistribution = useMemo(() => {
+    const expenseTransactions = filteredTransactions.filter(t => t.type === 'expense');
+    const distribution: { [key: string]: number } = {};
+
+    expenseTransactions.forEach(t => {
+        const categoryName = categories.find(c => c.id === t.category)?.name || 'Sin Categoría';
+        distribution[categoryName] = (distribution[categoryName] || 0) + t.amount;
+    });
+
+    return Object.entries(distribution).map(([name, value]) => ({ name, value }));
+  }, [filteredTransactions, categories]);
+
   const chartConfig = {
     income: { label: 'Ingresos', color: "hsl(var(--chart-1))" },
     expense: { label: 'Gastos', color: "hsl(var(--chart-2))" },
@@ -80,23 +165,23 @@ export default function ReportsPage() {
   return (
     <MainLayout>
       <PageHeader title="Reportes">
-        <DateRangePicker />
+        <DateRangePicker date={date} onDateChange={setDate} />
       </PageHeader>
       
       <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Tendencias Mensuales</CardTitle>
-            <CardDescription>Ingresos vs. Gastos en los últimos 6 meses.</CardDescription>
+            <CardDescription>Ingresos vs. Gastos en el rango seleccionado.</CardDescription>
           </CardHeader>
           <CardContent className="h-[200px]">
              <ChartContainer config={chartConfig} className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={mockMonthlyTrends} margin={{ top: 5, right: 10, left: -25, bottom: 5 }}>
+                <BarChart data={monthlyTrends} margin={{ top: 5, right: 10, left: -25, bottom: 5 }}>
                   <CartesianGrid vertical={false} />
                   <XAxis dataKey="month" tickLine={false} tickMargin={5} axisLine={false} tick={{ fontSize: 7 }} />
                   <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `$${value/1000000}M`} tick={{ fontSize: 7 }} />
-                  <Tooltip content={<ChartTooltipContent />} />
+                  <Tooltip content={<ChartTooltipContent formatter={(value) => formatCurrency(value as number)} />} />
                   <Legend wrapperStyle={{ fontSize: "9px", paddingTop: "0px" }} />
                   <Bar dataKey="income" fill="var(--color-income)" radius={4} />
                   <Bar dataKey="expense" fill="var(--color-expense)" radius={4} />
@@ -108,16 +193,16 @@ export default function ReportsPage() {
         
         <Card>
           <CardHeader>
-            <CardTitle>Gastos Anuales</CardTitle>
-            <CardDescription>Distribución de tus gastos por categoría este año.</CardDescription>
+            <CardTitle>Gastos por Categoría</CardTitle>
+            <CardDescription>Distribución de tus gastos en el rango seleccionado.</CardDescription>
           </CardHeader>
           <CardContent className="h-[200px] flex items-center justify-center">
             <ChartContainer config={{}} className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Tooltip content={<ChartTooltipContent nameKey="name" />} />
+                  <Tooltip content={<ChartTooltipContent nameKey="name" formatter={(value) => formatCurrency(value as number)} />} />
                   <Pie
-                    data={mockAnnualDistribution}
+                    data={expenseDistribution}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
@@ -150,7 +235,11 @@ export default function ReportsPage() {
                         </text>
                       );
                     }}
-                  />
+                  >
+                    {expenseDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
                   <Legend wrapperStyle={{ fontSize: "9px", paddingTop: "0px" }} />
                 </PieChart>
               </ResponsiveContainer>
