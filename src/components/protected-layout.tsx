@@ -9,7 +9,7 @@ export function ProtectedLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   
-  const isAuthPage = pathname.includes('/login') || pathname.includes('/signup');
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
 
   useEffect(() => {
     if (loading) return;
