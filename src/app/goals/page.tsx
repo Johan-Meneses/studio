@@ -56,13 +56,17 @@ export default function GoalsPage() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const userGoals = snapshot.docs.map(doc => {
         const data = doc.data();
+        if (!data.createdAt) {
+          // Document is not fully created yet, skip
+          return null;
+        }
         return {
           id: doc.id,
           ...data,
           targetDate: data.targetDate?.toDate(),
           createdAt: data.createdAt.toDate(),
         } as Goal;
-      });
+      }).filter((goal): goal is Goal => goal !== null); // Filter out null values
       setGoals(userGoals.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()));
     });
     return () => unsubscribe();
