@@ -17,6 +17,18 @@ export type Category = {
   userId: string;
 };
 
+export type Goal = {
+    id: string;
+    userId: string;
+    goalName: string;
+    targetAmount: number;
+    currentAmount: number;
+    timeframe: 'Corto Plazo' | 'Mediano Plazo' | 'Largo Plazo';
+    targetDate?: Date;
+    imageUrl?: string;
+    createdAt: Date;
+};
+
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string(),

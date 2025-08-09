@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Tags,
   LogOut,
+  Target,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,7 @@ export function AppSidebarContent() {
     { href: '/dashboard', label: 'Panel', icon: LayoutDashboard },
     { href: '/reports', label: 'Reportes', icon: BarChart3 },
     { href: '/categories', label: 'Categorías', icon: Tags },
+    { href: '/goals', label: 'Metas', icon: Target },
   ];
 
   const handleLogout = async () => {

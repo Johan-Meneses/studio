@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { MainLayout } from '@/components/main-layout';
 import { PageHeader } from '@/components/page-header';
 import { AddTransactionDialog } from '@/components/add-transaction-dialog';
+import { Progress } from '@/components/ui/progress';
 import {
     Landmark,
     ShoppingBag,
@@ -28,6 +29,7 @@ import {
     Pencil,
     Trash2,
     PlusCircle,
+    Target,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -42,8 +44,9 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
-import type { Transaction, Category } from '@/lib/types';
+import type { Transaction, Category, Goal } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 function SummaryCard({ title, value, icon: Icon, description }: { title: string; value: string; icon: React.ElementType; description: string; }) {
     return (
@@ -67,8 +70,9 @@ export default function DashboardPage() {
     const { toast } = useToast();
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
+    const [goals, setGoals] = useState<Goal[]>([]);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+    const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
 
     const formatCurrency = (amount: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(amount);
 
@@ -77,6 +81,7 @@ export default function DashboardPage() {
 
         const transactionsQuery = query(collection(db, 'transactions'), where('userId', '==', user.uid));
         const categoriesQuery = query(collection(db, 'categories'), where('userId', '==', user.uid));
+        const goalsQuery = query(collection(db, 'goals'), where('userId', '==', user.uid));
 
         const unsubscribeTransactions = onSnapshot(transactionsQuery, (snapshot) => {
             const userTransactions: Transaction[] = snapshot.docs.map(doc => {
@@ -94,10 +99,24 @@ export default function DashboardPage() {
             const userCategories: Category[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
             setCategories(userCategories);
         });
+        
+        const unsubscribeGoals = onSnapshot(goalsQuery, (snapshot) => {
+            const userGoals: Goal[] = snapshot.docs.map(doc => {
+                 const data = doc.data();
+                 return {
+                    id: doc.id,
+                    ...data,
+                    targetDate: data.targetDate?.toDate(),
+                    createdAt: data.createdAt.toDate(),
+                 } as Goal;
+            });
+            setGoals(userGoals);
+        });
 
         return () => {
             unsubscribeTransactions();
             unsubscribeCategories();
+            unsubscribeGoals();
         };
     }, [user]);
 
@@ -157,16 +176,27 @@ export default function DashboardPage() {
             .sort((a, b) => b.value - a.value);
     }, [transactionsWithCategoryNames]);
 
+    const upcomingGoals = useMemo(() => {
+        return goals
+            .map(goal => ({
+                ...goal,
+                progress: (goal.currentAmount / goal.targetAmount) * 100
+            }))
+            .sort((a, b) => b.progress - a.progress)
+            .slice(0, 2);
+    }, [goals]);
+
 
   return (
     <MainLayout>
       <PageHeader title="Panel">
          <AddTransactionDialog 
-            open={isAddDialogOpen} 
-            onOpenChange={setIsAddDialogOpen} 
+            open={isAddTransactionOpen} 
+            onOpenChange={setIsAddTransactionOpen} 
+            transaction={null}
             categories={categories}
           >
-            <Button onClick={() => setIsAddDialogOpen(true)}>
+            <Button onClick={() => setIsAddTransactionOpen(true)}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Agregar Transacción
             </Button>
@@ -179,8 +209,71 @@ export default function DashboardPage() {
           <SummaryCard title="Saldo" value={formatCurrency(monthlySummary.balance)} icon={Wallet} description="Tu saldo actual este mes" />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="lg:col-span-4">
+      <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-7">
+         <Card className="lg:col-span-4">
+            <CardHeader>
+                <CardTitle>Metas de Ahorro</CardTitle>
+                <CardDescription>
+                    Tus metas financieras más importantes.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                {goals.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg">
+                        <Target className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">Aún no tienes metas</h3>
+                        <p className="text-muted-foreground mb-4">Crea tu primera meta de ahorro para empezar.</p>
+                        <Button asChild>
+                            <Link href="/goals">Crear Meta</Link>
+                        </Button>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {upcomingGoals.map(goal => (
+                            <div key={goal.id}>
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-sm font-medium">{goal.goalName}</span>
+                                    <span className="text-xs text-muted-foreground">{formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}</span>
+                                </div>
+                                <Progress value={goal.progress} />
+                            </div>
+                        ))}
+                         {goals.length > 2 && (
+                            <div className="text-center mt-4">
+                                <Button variant="link" asChild>
+                                    <Link href="/goals">Ver todas las metas</Link>
+                                </Button>
+                            </div>
+                         )}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+        <Card className="lg:col-span-3">
+            <CardHeader>
+                <CardTitle>Distribución de Gastos</CardTitle>
+                <CardDescription>Un vistazo a tus gastos por categoría este mes.</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[200px]">
+                <ChartContainer config={{}} className="h-full w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                         <BarChart data={expenseByCategory} layout="vertical" margin={{ left: -25, right: 10 }}>
+                            <XAxis type="number" hide />
+                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{ fontSize: 7 }} width={45} />
+                            <Tooltip cursor={{ fill: 'hsl(var(--muted))' }} content={<ChartTooltipContent formatter={(value) => formatCurrency(value as number)} />} />
+                            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                                {expenseByCategory.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
+            </CardContent>
+        </Card>
+      </div>
+      
+       <Card>
             <CardHeader>
                 <CardTitle>Transacciones Recientes</CardTitle>
                 <CardDescription>
@@ -246,30 +339,6 @@ export default function DashboardPage() {
             transaction={editingTransaction} 
             categories={categories}
         />
-
-        <Card className="lg:col-span-3">
-            <CardHeader>
-                <CardTitle>Distribución de Gastos</CardTitle>
-                <CardDescription>Un vistazo a tus gastos por categoría este mes.</CardDescription>
-            </CardHeader>
-            <CardContent className="h-[200px]">
-                <ChartContainer config={{}} className="h-full w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                         <BarChart data={expenseByCategory} layout="vertical" margin={{ left: -25, right: 10 }}>
-                            <XAxis type="number" hide />
-                            <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{ fontSize: 7 }} width={45} />
-                            <Tooltip cursor={{ fill: 'hsl(var(--muted))' }} content={<ChartTooltipContent formatter={(value) => formatCurrency(value as number)} />} />
-                            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                                {expenseByCategory.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
-                </ChartContainer>
-            </CardContent>
-        </Card>
-      </div>
     </MainLayout>
   );
 }
