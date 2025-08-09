@@ -93,7 +93,7 @@ export default function GoalsPage() {
 
   return (
     <MainLayout>
-      <PageHeader title="Metas de Ahorro">
+      <PageHeader title="Metas Financieras">
         <Button onClick={() => { setSelectedGoal(null); setIsGoalDialogOpen(true); }}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Crear Meta
@@ -103,9 +103,9 @@ export default function GoalsPage() {
       {goals.length === 0 ? (
         <Card className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed">
             <Target className="h-16 w-16 text-muted-foreground mb-4" />
-            <CardTitle className="text-xl mb-2">Comienza a Ahorrar para tus Sueños</CardTitle>
+            <CardTitle className="text-xl mb-2">Comienza a Planificar tu Futuro</CardTitle>
             <CardDescription className="mb-6 max-w-md">
-                No tienes ninguna meta de ahorro todavía. ¡Crear una es el primer paso para alcanzar tus objetivos financieros!
+                No tienes ninguna meta de ahorro o de pago de deudas todavía. ¡Crear una es el primer paso para alcanzar tus objetivos financieros!
             </CardDescription>
             <Button onClick={() => { setSelectedGoal(null); setIsGoalDialogOpen(true); }}>
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -117,6 +117,7 @@ export default function GoalsPage() {
           {goals.map((goal) => {
             const progress = (goal.currentAmount / goal.targetAmount) * 100;
             const remaining = goal.targetAmount - goal.currentAmount;
+            const isSavingGoal = goal.goalType === 'saving';
 
             return (
               <Card key={goal.id} className="flex flex-col">
@@ -133,7 +134,7 @@ export default function GoalsPage() {
                   <div className="flex justify-between items-start">
                     <div>
                         <CardTitle>{goal.goalName}</CardTitle>
-                        <CardDescription>{goal.timeframe}</CardDescription>
+                        <CardDescription>{isSavingGoal ? 'Progreso de Ahorro' : 'Progreso de Pago'}</CardDescription>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -158,7 +159,7 @@ export default function GoalsPage() {
                                 <AlertDialogHeader>
                                 <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    Esta acción no se puede deshacer. Esto eliminará permanentemente tu meta de ahorro.
+                                    Esta acción no se puede deshacer. Esto eliminará permanentemente tu meta.
                                 </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -181,13 +182,15 @@ export default function GoalsPage() {
                     </p>
                     {remaining > 0 && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        Te faltan {formatCurrency(remaining)} para alcanzar tu meta.
+                        {isSavingGoal ? `Te faltan ${formatCurrency(remaining)} para alcanzar tu meta.` : `Quedan ${formatCurrency(remaining)} por pagar.`}
                       </p>
                     )}
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button className="w-full" onClick={() => handleAddSavings(goal)}>Añadir Ahorro</Button>
+                  <Button className="w-full" onClick={() => handleAddSavings(goal)}>
+                    {isSavingGoal ? 'Añadir Ahorro' : 'Abonar a Deuda'}
+                  </Button>
                 </CardFooter>
               </Card>
             );

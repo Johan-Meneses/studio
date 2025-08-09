@@ -44,6 +44,7 @@ import { collection, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/fi
 const goalSchema = z.object({
   goalName: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
   targetAmount: z.coerce.number().positive('El monto objetivo debe ser positivo.'),
+  goalType: z.enum(['saving', 'debt'], { required_error: 'Debes seleccionar un tipo de meta.' }),
   timeframe: z.enum(['Corto Plazo', 'Mediano Plazo', 'Largo Plazo']),
   targetDate: z.date().optional(),
   imageUrl: z.string().url('Por favor ingresa una URL de imagen válida.').optional().or(z.literal('')),
@@ -68,6 +69,7 @@ export function GoalDialog({ open, onOpenChange, goal, onClose }: GoalDialogProp
     defaultValues: {
       goalName: '',
       targetAmount: 0,
+      goalType: 'saving',
       timeframe: 'Mediano Plazo',
       targetDate: undefined,
       imageUrl: '',
@@ -80,6 +82,7 @@ export function GoalDialog({ open, onOpenChange, goal, onClose }: GoalDialogProp
             form.reset({
                 goalName: goal.goalName,
                 targetAmount: goal.targetAmount,
+                goalType: goal.goalType,
                 timeframe: goal.timeframe,
                 targetDate: goal.targetDate ? new Date(goal.targetDate) : undefined,
                 imageUrl: goal.imageUrl || '',
@@ -88,6 +91,7 @@ export function GoalDialog({ open, onOpenChange, goal, onClose }: GoalDialogProp
             form.reset({
                 goalName: '',
                 targetAmount: 0,
+                goalType: 'saving',
                 timeframe: 'Mediano Plazo',
                 targetDate: undefined,
                 imageUrl: '',
@@ -143,13 +147,34 @@ export function GoalDialog({ open, onOpenChange, goal, onClose }: GoalDialogProp
     <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Editar' : 'Crear'} Meta de Ahorro</DialogTitle>
+          <DialogTitle>{isEditing ? 'Editar' : 'Crear'} Meta Financiera</DialogTitle>
           <DialogDescription>
-            Define tu objetivo financiero y empieza a ahorrar para alcanzarlo.
+            Define tu objetivo o deuda y empieza a seguir tu progreso.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
+            <FormField
+              control={form.control}
+              name="goalType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tipo de Meta</FormLabel>
+                   <Select onValueChange={field.onChange} value={field.value} defaultValue="saving">
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un tipo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="saving">Ahorrar para un objetivo</SelectItem>
+                      <SelectItem value="debt">Pagar una deuda</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="goalName"

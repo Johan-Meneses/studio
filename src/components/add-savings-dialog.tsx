@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -28,7 +28,7 @@ import { db } from '@/lib/firebase';
 import { doc, updateDoc, increment } from 'firebase/firestore';
 
 const savingsSchema = z.object({
-  amount: z.coerce.number().positive('El monto a ahorrar debe ser positivo.'),
+  amount: z.coerce.number().positive('El monto a aportar debe ser positivo.'),
 });
 
 type SavingsFormValues = z.infer<typeof savingsSchema>;
@@ -50,6 +50,12 @@ export function AddSavingsDialog({ open, onOpenChange, goal, onClose }: AddSavin
     },
   });
 
+  useEffect(() => {
+    if (open) {
+      form.reset({ amount: 0 });
+    }
+  }, [open, form]);
+
   const handleDialogClose = (isOpen: boolean) => {
     if (!isOpen) {
         onClose();
@@ -61,31 +67,46 @@ export function AddSavingsDialog({ open, onOpenChange, goal, onClose }: AddSavin
   const onSubmit = async (data: SavingsFormValues) => {
     if (!goal) return;
 
+    const isSavingGoal = goal.goalType === 'saving';
+    const successTitle = isSavingGoal ? '¡Ahorro Añadido!' : '¡Abono Realizado!';
+    const successDescription = isSavingGoal
+      ? `Has añadido ${data.amount} a tu meta "${goal.goalName}".`
+      : `Has abonado ${data.amount} a tu deuda "${goal.goalName}".`;
+    const errorDescription = isSavingGoal
+      ? 'No se pudo añadir el ahorro.'
+      : 'No se pudo registrar el abono.';
+
     try {
         const goalRef = doc(db, 'goals', goal.id);
         await updateDoc(goalRef, {
             currentAmount: increment(data.amount)
         });
-        toast({ title: '¡Ahorro Añadido!', description: `Has añadido ${data.amount} a tu meta "${goal.goalName}".` });
+        toast({ title: successTitle, description: successDescription });
         handleDialogClose(false);
     } catch (error) {
         toast({
             variant: 'destructive',
             title: 'Error',
-            description: 'No se pudo añadir el ahorro.',
+            description: errorDescription,
         });
     }
   };
   
   if (!goal) return null;
 
+  const isSavingGoal = goal.goalType === 'saving';
+  const dialogTitle = isSavingGoal ? `Añadir Ahorro a "${goal.goalName}"` : `Abonar a Deuda "${goal.goalName}"`;
+  const dialogDescription = isSavingGoal ? 'Ingresa la cantidad que quieres aportar a esta meta.' : 'Ingresa la cantidad que quieres abonar a esta deuda.';
+  const formLabel = isSavingGoal ? 'Monto a Ahorrar' : 'Monto a Abonar';
+  const buttonText = isSavingGoal ? 'Añadir Ahorro' : 'Realizar Abono';
+
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Añadir Ahorro a "{goal.goalName}"</DialogTitle>
+          <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
-            Ingresa la cantidad que quieres aportar a esta meta.
+            {dialogDescription}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -95,7 +116,7 @@ export function AddSavingsDialog({ open, onOpenChange, goal, onClose }: AddSavin
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Monto a Ahorrar</FormLabel>
+                  <FormLabel>{formLabel}</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="100,000" {...field} />
                   </FormControl>
@@ -104,7 +125,7 @@ export function AddSavingsDialog({ open, onOpenChange, goal, onClose }: AddSavin
               )}
             />
             <DialogFooter>
-              <Button type="submit">Añadir Ahorro</Button>
+              <Button type="submit">{buttonText}</Button>
             </DialogFooter>
           </form>
         </Form>

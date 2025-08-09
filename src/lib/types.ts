@@ -23,6 +23,7 @@ export type Goal = {
     goalName: string;
     targetAmount: number;
     currentAmount: number;
+    goalType: 'saving' | 'debt';
     timeframe: 'Corto Plazo' | 'Mediano Plazo' | 'Largo Plazo';
     targetDate?: Date;
     imageUrl?: string;
