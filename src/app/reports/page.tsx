@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { MainLayout } from '@/components/main-layout';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
@@ -31,8 +31,17 @@ import { Bar, BarChart, CartesianGrid, Legend, Pie, PieChart, ResponsiveContaine
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import type { Transaction, Category } from '@/lib/types';
+import { collection, query, where, onSnapshot, doc, writeBatch, increment } from 'firebase/firestore';
+import type { Transaction, Category, Goal } from '@/lib/types';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { AddTransactionDialog } from '@/components/add-transaction-dialog';
+import { useToast } from '@/hooks/use-toast';
+
 
 function DateRangePicker({
   className,
@@ -87,8 +96,12 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
 
 export default function ReportsPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [date, setDate] = useState<DateRange | undefined>({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
@@ -101,6 +114,7 @@ export default function ReportsPage() {
 
       const transactionsQuery = query(collection(db, 'transactions'), where('userId', '==', user.uid));
       const categoriesQuery = query(collection(db, 'categories'), where('userId', '==', user.uid));
+      const goalsQuery = query(collection(db, 'goals'), where('userId', '==', user.uid));
 
       const unsubscribeTransactions = onSnapshot(transactionsQuery, (snapshot) => {
           const userTransactions: Transaction[] = snapshot.docs.map(doc => ({
@@ -118,12 +132,66 @@ export default function ReportsPage() {
           } as Category));
           setCategories(userCategories);
       });
+      
+      const unsubscribeGoals = onSnapshot(goalsQuery, (snapshot) => {
+        const userGoals: Goal[] = snapshot.docs.map(doc => {
+             const data = doc.data();
+             if (!data.createdAt) return null;
+             return {
+                id: doc.id,
+                ...data,
+                targetDate: data.targetDate?.toDate(),
+                createdAt: data.createdAt.toDate(),
+             } as Goal;
+        }).filter((goal): goal is Goal => goal !== null);
+        setGoals(userGoals);
+    });
 
       return () => {
           unsubscribeTransactions();
           unsubscribeCategories();
+          unsubscribeGoals();
       };
   }, [user]);
+
+  const handleDeleteTransaction = async (transaction: Transaction) => {
+    const batch = writeBatch(db);
+    try {
+        const transactionRef = doc(db, 'transactions', transaction.id);
+        batch.delete(transactionRef);
+
+        if (transaction.linkedGoalId) {
+            const goal = goals.find(g => g.id === transaction.linkedGoalId);
+            if(goal) {
+                const getAmountMultiplier = (goalType: 'saving' | 'debt', transactionType: 'income' | 'expense'): number => {
+                    if (transactionType === 'income') return 1;
+                    if (goalType === 'debt') return 1;
+                    return -1;
+                };
+                const multiplier = getAmountMultiplier(goal.goalType, transaction.type);
+                const amountToRevert = -(transaction.amount * multiplier);
+
+                const goalRef = doc(db, 'goals', transaction.linkedGoalId);
+                batch.update(goalRef, { currentAmount: increment(amountToRevert) });
+            }
+        }
+        
+        await batch.commit();
+        toast({ title: 'Transacción Eliminada', description: 'La transacción y su vínculo han sido eliminados con éxito.' });
+    } catch (error) {
+        toast({ title: 'Error', description: 'No se pudo eliminar la transacción.', variant: 'destructive' });
+    }
+  };
+
+  const handleEditTransaction = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setIsDialogOpen(true);
+  }
+
+  const handleDialogClose = () => {
+    setEditingTransaction(null);
+    setIsDialogOpen(false);
+  }
   
   const categoryMap = useMemo(() => {
     return new Map(categories.map(c => [c.id, c.name]));
@@ -280,6 +348,7 @@ export default function ReportsPage() {
                             <TableHead className="px-2">Categoría</TableHead>
                             <TableHead className="text-right px-2">Monto</TableHead>
                             <TableHead className="hidden md:table-cell px-2">Fecha</TableHead>
+                            <TableHead className="px-2"><span className="sr-only">Acciones</span></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -297,11 +366,31 @@ export default function ReportsPage() {
                                     {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                                 </TableCell>
                                 <TableCell className="hidden md:table-cell px-2">{format(transaction.date, 'dd MMM, yyyy', { locale: es })}</TableCell>
+                                <TableCell className="text-right px-2">
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" className="h-8 w-8 p-0">
+                                        <span className="sr-only">Abrir menú</span>
+                                        <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onSelect={() => handleEditTransaction(transaction)}>
+                                            <Pencil className="mr-2 h-4 w-4" />
+                                            <span>Editar</span>
+                                        </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleDeleteTransaction(transaction)} className="text-red-500 focus:text-red-500">
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        <span>Eliminar</span>
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </TableCell>
                             </TableRow>
                         ))}
                          {filteredTransactions.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                                     No hay transacciones para este período.
                                 </TableCell>
                             </TableRow>
@@ -310,6 +399,20 @@ export default function ReportsPage() {
                 </Table>
             </CardContent>
         </Card>
+
+        <AddTransactionDialog 
+            open={isDialogOpen}
+            onOpenChange={(open) => {
+                if (!open) {
+                    handleDialogClose();
+                } else {
+                    setIsDialogOpen(true);
+                }
+            }}
+            transaction={editingTransaction} 
+            categories={categories}
+            goals={goals}
+        />
     </MainLayout>
   );
 }
