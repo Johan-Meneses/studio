@@ -9,6 +9,15 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { MainLayout } from '@/components/main-layout';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -115,6 +124,11 @@ export default function ReportsPage() {
           unsubscribeCategories();
       };
   }, [user]);
+  
+  const categoryMap = useMemo(() => {
+    return new Map(categories.map(c => [c.id, c.name]));
+  }, [categories]);
+
 
   const filteredTransactions = useMemo(() => {
     if (!date?.from) return [];
@@ -124,8 +138,11 @@ export default function ReportsPage() {
     return transactions.filter(t => {
       const tDate = new Date(t.date);
       return tDate >= fromDate && tDate <= toDate;
-    });
-  }, [transactions, date]);
+    }).map(t => ({
+        ...t,
+        categoryName: categoryMap.get(t.category) || 'Sin Categoría'
+    })).sort((a,b) => b.date.getTime() - a.date.getTime());
+  }, [transactions, date, categoryMap]);
 
   const monthlyTrends = useMemo(() => {
       const trends: { [key: string]: { income: number; expense: number } } = {};
@@ -150,12 +167,12 @@ export default function ReportsPage() {
     const distribution: { [key: string]: number } = {};
 
     expenseTransactions.forEach(t => {
-        const categoryName = categories.find(c => c.id === t.category)?.name || 'Sin Categoría';
+        const categoryName = t.categoryName;
         distribution[categoryName] = (distribution[categoryName] || 0) + t.amount;
     });
 
     return Object.entries(distribution).map(([name, value]) => ({ name, value }));
-  }, [filteredTransactions, categories]);
+  }, [filteredTransactions]);
 
   const chartConfig = {
     income: { label: 'Ingresos', color: "hsl(var(--chart-1))" },
@@ -247,6 +264,52 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
       </div>
+
+       <Card>
+            <CardHeader>
+                <CardTitle>Detalle de Transacciones</CardTitle>
+                <CardDescription>
+                   Todas las transacciones para el período de tiempo seleccionado.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="px-2">Descripción</TableHead>
+                            <TableHead className="px-2">Categoría</TableHead>
+                            <TableHead className="text-right px-2">Monto</TableHead>
+                            <TableHead className="hidden md:table-cell px-2">Fecha</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filteredTransactions.map((transaction) => (
+                            <TableRow key={transaction.id}>
+                                <TableCell className="font-medium px-2 break-words">
+                                  {transaction.description}
+                                </TableCell>
+                                <TableCell className="px-2">
+                                    <Badge variant={transaction.type === 'income' ? 'default' : 'secondary'} className={transaction.type === 'income' ? 'bg-green-100 text-green-800' : ''}>
+                                        {transaction.categoryName}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className={`text-right font-medium px-2 ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                                    {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                                </TableCell>
+                                <TableCell className="hidden md:table-cell px-2">{format(transaction.date, 'dd MMM, yyyy', { locale: es })}</TableCell>
+                            </TableRow>
+                        ))}
+                         {filteredTransactions.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                                    No hay transacciones para este período.
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
     </MainLayout>
   );
 }
