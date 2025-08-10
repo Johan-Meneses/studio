@@ -233,6 +233,17 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
     if (!user) return;
     
     const batch = writeBatch(db);
+    const getAmountMultiplier = (goalType: 'saving' | 'debt', transactionType: 'income' | 'expense'): number => {
+        if (transactionType === 'income') {
+            return 1; // Incomes always add to the goal progress
+        }
+        // If it's an expense
+        if (goalType === 'debt') {
+            return 1; // Paying off a debt (expense) increases the paid amount
+        }
+        return -1; // Withdrawing from savings (expense) decreases the saved amount
+    };
+    
 
     try {
         const transactionData = { ...data, linkedGoalId: data.linkedGoalId === 'none' ? null : data.linkedGoalId || null };
@@ -240,30 +251,31 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
 
         if (isEditing && transaction) {
             transactionRef = doc(db, 'transactions', transaction.id);
+            
+            // Revert previous goal amount if goal link changed or transaction details changed
+            if(transaction.linkedGoalId) {
+                const oldGoal = goals.find(g => g.id === transaction.linkedGoalId);
+                if (oldGoal) {
+                    const oldMultiplier = getAmountMultiplier(oldGoal.goalType, transaction.type);
+                    const oldAmountToRevert = - (transaction.amount * oldMultiplier);
+                    const oldGoalRef = doc(db, 'goals', transaction.linkedGoalId);
+                    batch.update(oldGoalRef, { currentAmount: increment(oldAmountToRevert) });
+                }
+            }
             batch.update(transactionRef, transactionData);
 
-            // Revert previous goal amount if goal link changed
-            if(transaction.linkedGoalId && transaction.linkedGoalId !== data.linkedGoalId) {
-                const oldGoalRef = doc(db, 'goals', transaction.linkedGoalId);
-                const oldAmountToRevert = transaction.type === 'income' ? -transaction.amount : transaction.amount;
-                batch.update(oldGoalRef, { currentAmount: increment(oldAmountToRevert) });
-            }
         } else {
             transactionRef = doc(collection(db, 'transactions'));
             batch.set(transactionRef, { ...transactionData, userId: user.uid });
         }
 
-        // Update new linked goal
+        // Apply new goal amount
         if(data.linkedGoalId && data.linkedGoalId !== 'none') {
-             const goalRef = doc(db, 'goals', data.linkedGoalId);
-             const amountToAdd = data.type === 'income' ? data.amount : -data.amount;
-             
-             // If editing and goal is the same, calculate the difference
-             if(isEditing && transaction && transaction.linkedGoalId === data.linkedGoalId) {
-                 const oldAmount = transaction.type === 'income' ? transaction.amount : -transaction.amount;
-                 const diff = amountToAdd - oldAmount;
-                 if(diff !== 0) batch.update(goalRef, { currentAmount: increment(diff) });
-             } else {
+             const newGoal = goals.find(g => g.id === data.linkedGoalId);
+             if (newGoal) {
+                 const newMultiplier = getAmountMultiplier(newGoal.goalType, data.type);
+                 const amountToAdd = data.amount * newMultiplier;
+                 const goalRef = doc(db, 'goals', data.linkedGoalId);
                  batch.update(goalRef, { currentAmount: increment(amountToAdd) });
              }
         }
