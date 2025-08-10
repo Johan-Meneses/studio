@@ -138,7 +138,7 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
       date: new Date(),
       type: 'expense',
       category: '',
-      linkedGoalId: undefined,
+      linkedGoalId: 'none',
     },
   });
 
@@ -168,7 +168,7 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
                 date: new Date(transaction.date),
                 type: transaction.type,
                 category: transaction.category,
-                linkedGoalId: transaction.linkedGoalId || undefined,
+                linkedGoalId: transaction.linkedGoalId || 'none',
             });
         } else {
             form.reset({
@@ -177,7 +177,7 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
                 date: new Date(),
                 type: 'expense',
                 category: '',
-                linkedGoalId: undefined,
+                linkedGoalId: 'none',
             });
         }
     }
@@ -234,17 +234,18 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
     
     const batch = writeBatch(db);
     const getAmountMultiplier = (goalType: 'saving' | 'debt', transactionType: 'income' | 'expense'): number => {
-        if (transactionType === 'income') {
-            return 1; // Incomes always add to the goal progress
-        }
-        // If it's an expense
-        if (goalType === 'debt') {
-            return 1; // Paying off a debt (expense) increases the paid amount
-        }
-        return -1; // Withdrawing from savings (expense) decreases the saved amount
+        // Income always adds to progress, regardless of goal type
+        if (transactionType === 'income') return 1;
+
+        // Expense from a saving goal reduces progress
+        if (goalType === 'saving') return -1;
+        
+        // Expense towards a debt goal increases progress (reduces debt)
+        if (goalType === 'debt') return 1;
+
+        return 0; // Should not happen
     };
     
-
     try {
         const transactionData = { ...data, linkedGoalId: data.linkedGoalId === 'none' ? null : data.linkedGoalId || null };
         let transactionRef;
@@ -300,7 +301,7 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar' : 'Agregar'} Transacción</DialogTitle>
           <DialogDescription>
@@ -323,7 +324,7 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
               )}
             />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField
+               <FormField
                 control={form.control}
                 name="amount"
                 render={({ field }) => (
@@ -378,9 +379,7 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
                   </FormItem>
                 )}
               />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField
+               <FormField
                 control={form.control}
                 name="type"
                 render={({ field }) => (
@@ -448,13 +447,14 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
                 )}
               />
             </div>
+           
             <FormField
               control={form.control}
               name="linkedGoalId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Vincular a Meta (Opcional)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || 'none'} defaultValue="none">
+                  <Select onValueChange={field.onChange} value={field.value} defaultValue="none">
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="No vincular a ninguna meta" />
@@ -482,5 +482,3 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
     </Dialog>
   );
 }
-
-    
