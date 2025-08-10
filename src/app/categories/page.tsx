@@ -59,15 +59,18 @@ function CategoryDialog({
     onSave, 
     children, 
     parentCategories,
-    initialParentId 
+    initialParentId,
+    open,
+    onOpenChange,
 }: { 
     category?: Category | null, 
     onSave: (name: string, parentId?: string) => void, 
     children: React.ReactNode,
     parentCategories: Category[],
     initialParentId?: string,
+    open: boolean,
+    onOpenChange: (open: boolean) => void,
 }) {
-  const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [parentId, setParentId] = useState<string | undefined>(undefined);
 
@@ -84,13 +87,13 @@ function CategoryDialog({
 
   const handleSave = () => {
     onSave(name, parentId);
-    setOpen(false);
+    onOpenChange(false);
   };
 
   const isSubcategory = !!initialParentId && !category;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -336,16 +339,9 @@ export default function CategoriesPage() {
   return (
     <MainLayout>
       <PageHeader title="Categorías">
-        <CategoryDialog 
-            onSave={handleSaveCategory}
-            parentCategories={parentCategories}
-            category={editingCategory}
-            initialParentId={initialParentId}
-        >
-            <Button onClick={() => openDialogForAdd()}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Agregar Categoría
-            </Button>
-        </CategoryDialog>
+        <Button onClick={() => openDialogForAdd()}>
+            <PlusCircle className="mr-2 h-4 w-4" /> Agregar Categoría
+        </Button>
       </PageHeader>
       
       <Card>
@@ -364,17 +360,16 @@ export default function CategoriesPage() {
         </CardContent>
       </Card>
 
-      {/* This Dialog instance is controlled by the state for editing/add */}
-       <CategoryDialog 
-            open={isDialogOpen}
-            onOpenChange={setIsDialogOpen}
-            onSave={handleSaveCategory}
-            parentCategories={parentCategories}
-            category={editingCategory}
-            initialParentId={initialParentId}
-        >
-            <span />
-        </CategoryDialog>
+      <CategoryDialog 
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onSave={handleSaveCategory}
+        parentCategories={parentCategories}
+        category={editingCategory}
+        initialParentId={initialParentId}
+      >
+        <span />
+      </CategoryDialog>
     </MainLayout>
   );
 }
