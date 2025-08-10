@@ -142,11 +142,26 @@ export default function DashboardPage() {
     };
 
     const transactionsWithCategoryNames = useMemo(() => {
-        const categoryMap = new Map(categories.map(c => [c.id, c.name]));
-        return transactions.map(t => ({
-            ...t,
-            categoryName: t.category ? categoryMap.get(t.category) || 'Sin Categoría' : 'Sin Categoría'
-        }));
+        const categoryMap = new Map(categories.map(c => [c.id, c]));
+        return transactions.map(t => {
+            if (!t.category) {
+                return { ...t, categoryName: 'Sin Categoría' };
+            }
+            const category = categoryMap.get(t.category);
+            if (!category) {
+                return { ...t, categoryName: 'Sin Categoría' };
+            }
+
+            if (category.parentId && categoryMap.has(category.parentId)) {
+                const parentCategory = categoryMap.get(category.parentId);
+                return {
+                    ...t,
+                    categoryName: `${parentCategory!.name} > ${category.name}`
+                };
+            }
+
+            return { ...t, categoryName: category.name };
+        });
     }, [transactions, categories]);
     
     const monthlySummary = useMemo(() => {
