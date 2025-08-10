@@ -43,7 +43,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, deleteDoc, writeBatch, increment } from 'firebase/firestore';
 import type { Transaction, Category, Goal } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
@@ -103,13 +103,14 @@ export default function DashboardPage() {
         const unsubscribeGoals = onSnapshot(goalsQuery, (snapshot) => {
             const userGoals: Goal[] = snapshot.docs.map(doc => {
                  const data = doc.data();
+                 if (!data.createdAt) return null;
                  return {
                     id: doc.id,
                     ...data,
                     targetDate: data.targetDate?.toDate(),
                     createdAt: data.createdAt.toDate(),
                  } as Goal;
-            });
+            }).filter((goal): goal is Goal => goal !== null);
             setGoals(userGoals);
         });
 
@@ -120,10 +121,21 @@ export default function DashboardPage() {
         };
     }, [user]);
 
-    const handleDeleteTransaction = async (id: string) => {
+    const handleDeleteTransaction = async (transaction: Transaction) => {
+        const batch = writeBatch(db);
         try {
-            await deleteDoc(doc(db, 'transactions', id));
-            toast({ title: 'Transacción Eliminada', description: 'La transacción ha sido eliminada con éxito.' });
+            const transactionRef = doc(db, 'transactions', transaction.id);
+            batch.delete(transactionRef);
+
+            if (transaction.linkedGoalId) {
+                const goalRef = doc(db, 'goals', transaction.linkedGoalId);
+                // Revert the amount from the goal
+                const amountToRevert = transaction.type === 'income' ? -transaction.amount : transaction.amount;
+                batch.update(goalRef, { currentAmount: increment(amountToRevert) });
+            }
+            
+            await batch.commit();
+            toast({ title: 'Transacción Eliminada', description: 'La transacción y su vínculo han sido eliminados con éxito.' });
         } catch (error) {
             toast({ title: 'Error', description: 'No se pudo eliminar la transacción.', variant: 'destructive' });
         }
@@ -190,17 +202,10 @@ export default function DashboardPage() {
   return (
     <MainLayout>
       <PageHeader title="Panel">
-         <AddTransactionDialog 
-            open={isAddTransactionOpen} 
-            onOpenChange={setIsAddTransactionOpen} 
-            transaction={null}
-            categories={categories}
-          >
-            <Button onClick={() => setIsAddTransactionOpen(true)}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Agregar Transacción
-            </Button>
-        </AddTransactionDialog>
+        <Button onClick={() => setIsAddTransactionOpen(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Agregar Transacción
+        </Button>
       </PageHeader>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -319,7 +324,7 @@ export default function DashboardPage() {
                                             <Pencil className="mr-2 h-4 w-4" />
                                             <span>Editar</span>
                                         </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleDeleteTransaction(transaction.id)} className="text-red-500 focus:text-red-500">
+                                      <DropdownMenuItem onClick={() => handleDeleteTransaction(transaction)} className="text-red-500 focus:text-red-500">
                                         <Trash2 className="mr-2 h-4 w-4" />
                                         <span>Eliminar</span>
                                       </DropdownMenuItem>
@@ -334,11 +339,21 @@ export default function DashboardPage() {
         </Card>
         
         <AddTransactionDialog 
-            open={!!editingTransaction} 
-            onOpenChange={(isOpen) => !isOpen && setEditingTransaction(null)}
+            open={isAddTransactionOpen || !!editingTransaction}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) {
+                    setEditingTransaction(null);
+                    setIsAddTransactionOpen(false);
+                } else {
+                    // This case is handled by the buttons themselves
+                }
+            }}
             transaction={editingTransaction} 
             categories={categories}
+            goals={goals}
         />
     </MainLayout>
   );
 }
+
+    

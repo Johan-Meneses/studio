@@ -9,6 +9,7 @@ export type Transaction = {
   category: string; // This is the category ID
   categoryName?: string; // This is the category name, optional
   userId: string;
+  linkedGoalId?: string | null;
 };
 
 export type Category = {
@@ -45,3 +46,5 @@ const signupSchema = z.object({
 });
 
 export type SignupFormData = z.infer<typeof signupSchema>;
+
+    

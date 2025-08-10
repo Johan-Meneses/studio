@@ -49,10 +49,10 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { suggestCategory } from '@/ai/flows/categorize-transaction';
-import type { Category, Transaction } from '@/lib/types';
+import type { Category, Transaction, Goal } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, writeBatch, increment } from 'firebase/firestore';
 
 
 const transactionSchema = z.object({
@@ -61,6 +61,7 @@ const transactionSchema = z.object({
   date: z.date(),
   type: z.enum(['income', 'expense']),
   category: z.string().min(1, 'La categoría es obligatoria.'),
+  linkedGoalId: z.string().optional(),
 });
 
 type TransactionFormValues = z.infer<typeof transactionSchema>;
@@ -68,6 +69,7 @@ type TransactionFormValues = z.infer<typeof transactionSchema>;
 type AddTransactionDialogProps = {
     transaction?: Transaction | null,
     categories: Category[],
+    goals: Goal[],
     open: boolean,
     onOpenChange: (open: boolean) => void,
 }
@@ -122,7 +124,7 @@ function AddCategoryAlert({ onCategoryAdded }: { onCategoryAdded: (id: string) =
     )
 }
 
-export function AddTransactionDialog({ open, onOpenChange, transaction, categories }: AddTransactionDialogProps) {
+export function AddTransactionDialog({ open, onOpenChange, transaction, categories, goals }: AddTransactionDialogProps) {
   const [isSuggesting, setIsSuggesting] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -136,6 +138,7 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
       date: new Date(),
       type: 'expense',
       category: '',
+      linkedGoalId: '',
     },
   });
 
@@ -165,6 +168,7 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
                 date: new Date(transaction.date),
                 type: transaction.type,
                 category: transaction.category,
+                linkedGoalId: transaction.linkedGoalId,
             });
         } else {
             form.reset({
@@ -173,6 +177,7 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
                 date: new Date(),
                 type: 'expense',
                 category: '',
+                linkedGoalId: '',
             });
         }
     }
@@ -226,31 +231,53 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
 
   const onSubmit = async (data: TransactionFormValues) => {
     if (!user) return;
+    
+    const batch = writeBatch(db);
 
     try {
-        if(isEditing && transaction) {
-            const transactionRef = doc(db, 'transactions', transaction.id);
-            await updateDoc(transactionRef, {
-                ...data,
-            });
-            toast({
-                title: 'Transacción Actualizada',
-                description: `Se actualizó exitosamente ${data.description}.`,
-            });
+        const transactionData = { ...data, linkedGoalId: data.linkedGoalId || null };
+        let transactionRef;
+
+        if (isEditing && transaction) {
+            transactionRef = doc(db, 'transactions', transaction.id);
+            batch.update(transactionRef, transactionData);
+
+            // Revert previous goal amount if goal link changed
+            if(transaction.linkedGoalId && transaction.linkedGoalId !== data.linkedGoalId) {
+                const oldGoalRef = doc(db, 'goals', transaction.linkedGoalId);
+                const oldAmountToRevert = transaction.type === 'income' ? -transaction.amount : transaction.amount;
+                batch.update(oldGoalRef, { currentAmount: increment(oldAmountToRevert) });
+            }
         } else {
-            await addDoc(collection(db, 'transactions'), {
-                ...data,
-                userId: user.uid,
-            });
-            toast({
-                title: 'Transacción Agregada',
-                description: `Se agregó exitosamente ${data.description}.`,
-            });
+            transactionRef = doc(collection(db, 'transactions'));
+            batch.set(transactionRef, { ...transactionData, userId: user.uid });
         }
+
+        // Update new linked goal
+        if(data.linkedGoalId) {
+             const goalRef = doc(db, 'goals', data.linkedGoalId);
+             const amountToAdd = data.type === 'income' ? data.amount : -data.amount;
+             
+             // If editing and goal is the same, calculate the difference
+             if(isEditing && transaction && transaction.linkedGoalId === data.linkedGoalId) {
+                 const oldAmount = transaction.type === 'income' ? transaction.amount : -transaction.amount;
+                 const diff = amountToAdd - oldAmount;
+                 if(diff !== 0) batch.update(goalRef, { currentAmount: increment(diff) });
+             } else {
+                 batch.update(goalRef, { currentAmount: increment(amountToAdd) });
+             }
+        }
+        
+        await batch.commit();
+
+        toast({
+            title: isEditing ? 'Transacción Actualizada' : 'Transacción Agregada',
+            description: `Se guardó exitosamente "${data.description}".`,
+        });
       
       onOpenChange(false);
-      form.reset();
     } catch (error) {
+        console.error("Error saving transaction:", error);
         toast({
             variant: 'destructive',
             title: 'Error',
@@ -354,8 +381,8 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="expense">Gasto</SelectItem>
                         <SelectItem value="income">Ingreso</SelectItem>
+                        <SelectItem value="expense">Gasto</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -409,6 +436,31 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
                 )}
               />
             </div>
+            <FormField
+              control={form.control}
+              name="linkedGoalId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Vincular a Meta (Opcional)</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="No vincular a ninguna meta" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">Ninguna</SelectItem>
+                      {goals.map(goal => (
+                        <SelectItem key={goal.id} value={goal.id}>
+                          {goal.goalType === 'saving' ? 'Ahorro' : 'Deuda'}: {goal.goalName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <DialogFooter>
               <Button type="submit">{isEditing ? 'Guardar Cambios' : 'Agregar'}</Button>
             </DialogFooter>
@@ -418,3 +470,5 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
     </Dialog>
   );
 }
+
+    
