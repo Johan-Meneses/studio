@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Bot, Calendar as CalendarIcon, Loader2, PlusCircle, PlusSquare } from 'lucide-react';
+import { Bot, Calendar as CalendarIcon, Loader2, PlusSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -16,7 +16,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -45,6 +44,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectGroup,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -66,7 +66,6 @@ const transactionSchema = z.object({
 type TransactionFormValues = z.infer<typeof transactionSchema>;
 
 type AddTransactionDialogProps = {
-    children?: React.ReactNode,
     transaction?: Transaction | null,
     categories: Category[],
     open: boolean,
@@ -123,7 +122,7 @@ function AddCategoryAlert({ onCategoryAdded }: { onCategoryAdded: (id: string) =
     )
 }
 
-export function AddTransactionDialog({ open, onOpenChange, children, transaction, categories }: AddTransactionDialogProps) {
+export function AddTransactionDialog({ open, onOpenChange, transaction, categories }: AddTransactionDialogProps) {
   const [isSuggesting, setIsSuggesting] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -139,6 +138,23 @@ export function AddTransactionDialog({ open, onOpenChange, children, transaction
       category: '',
     },
   });
+
+  const { categoryTree, flatCategoryList } = useMemo(() => {
+    const categoryMap = new Map(categories.map(c => [c.id, { ...c, children: [] as Category[] }]));
+    const tree: (Category & { children: Category[] })[] = [];
+    
+    categories.forEach(cat => {
+      if (cat.parentId && categoryMap.has(cat.parentId)) {
+        categoryMap.get(cat.parentId)!.children.push(cat as Category & { children: Category[] });
+      } else {
+        tree.push(categoryMap.get(cat.id)!);
+      }
+    });
+
+    const flatList = categories.map(c => ({ id: c.id, name: c.name }));
+
+    return { categoryTree: tree, flatCategoryList: flatList };
+  }, [categories]);
 
   useEffect(() => {
     if (open) {
@@ -177,10 +193,10 @@ export function AddTransactionDialog({ open, onOpenChange, children, transaction
     try {
       const result = await suggestCategory({
         description,
-        availableCategories: categories.map((c) => c.name),
+        availableCategories: flatCategoryList.map(c => c.name),
       });
 
-      const suggestedCategory = categories.find(c => c.name === result.suggestedCategory);
+      const suggestedCategory = flatCategoryList.find(c => c.name === result.suggestedCategory);
 
       if (suggestedCategory) {
         form.setValue('category', suggestedCategory.id, { shouldValidate: true });
@@ -245,7 +261,6 @@ export function AddTransactionDialog({ open, onOpenChange, children, transaction
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar' : 'Agregar'} Transacción</DialogTitle>
@@ -361,11 +376,16 @@ export function AddTransactionDialog({ open, onOpenChange, children, transaction
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {categories.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.id}>
-                              {cat.name}
-                            </SelectItem>
-                          ))}
+                           {categoryTree.map(parent => (
+                              <SelectGroup key={parent.id}>
+                                <SelectItem value={parent.id}>{parent.name}</SelectItem>
+                                {parent.children.map(child => (
+                                  <SelectItem key={child.id} value={child.id}>
+                                    &nbsp;&nbsp;&nbsp;{child.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            ))}
                         </SelectContent>
                       </Select>
                       <AddCategoryAlert onCategoryAdded={(id) => form.setValue('category', id, { shouldValidate: true })} />

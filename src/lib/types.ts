@@ -15,6 +15,7 @@ export type Category = {
   id: string;
   name: string;
   userId: string;
+  parentId?: string;
 };
 
 export type Goal = {

@@ -2,7 +2,7 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
+    
     // Helper function to check ownership
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
@@ -13,13 +13,14 @@ service cloud.firestore {
       allow read, update, delete: if isOwner(resource.data.userId);
       allow create: if isOwner(request.resource.data.userId);
     }
-    
+
     // Categories
     match /categories/{categoryId} {
-      allow read, update, delete: if isOwner(resource.data.userId);
+      allow read: if request.auth != null;
       allow create: if isOwner(request.resource.data.userId);
+      allow update, delete: if isOwner(resource.data.userId);
     }
-    
+
     // Goals
     match /goals/{goalId} {
       allow read, update, delete: if isOwner(resource.data.userId);
