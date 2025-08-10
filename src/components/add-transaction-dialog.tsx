@@ -138,7 +138,7 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
       date: new Date(),
       type: 'expense',
       category: '',
-      linkedGoalId: '',
+      linkedGoalId: undefined,
     },
   });
 
@@ -168,7 +168,7 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
                 date: new Date(transaction.date),
                 type: transaction.type,
                 category: transaction.category,
-                linkedGoalId: transaction.linkedGoalId,
+                linkedGoalId: transaction.linkedGoalId || undefined,
             });
         } else {
             form.reset({
@@ -177,7 +177,7 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
                 date: new Date(),
                 type: 'expense',
                 category: '',
-                linkedGoalId: '',
+                linkedGoalId: undefined,
             });
         }
     }
@@ -235,7 +235,7 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
     const batch = writeBatch(db);
 
     try {
-        const transactionData = { ...data, linkedGoalId: data.linkedGoalId || null };
+        const transactionData = { ...data, linkedGoalId: data.linkedGoalId === 'none' ? null : data.linkedGoalId || null };
         let transactionRef;
 
         if (isEditing && transaction) {
@@ -254,7 +254,7 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
         }
 
         // Update new linked goal
-        if(data.linkedGoalId) {
+        if(data.linkedGoalId && data.linkedGoalId !== 'none') {
              const goalRef = doc(db, 'goals', data.linkedGoalId);
              const amountToAdd = data.type === 'income' ? data.amount : -data.amount;
              
@@ -442,14 +442,14 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Vincular a Meta (Opcional)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                  <Select onValueChange={field.onChange} value={field.value || 'none'} defaultValue="none">
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="No vincular a ninguna meta" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Ninguna</SelectItem>
+                      <SelectItem value="none">Ninguna</SelectItem>
                       {goals.map(goal => (
                         <SelectItem key={goal.id} value={goal.id}>
                           {goal.goalType === 'saving' ? 'Ahorro' : 'Deuda'}: {goal.goalName}
