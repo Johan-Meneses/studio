@@ -145,7 +145,7 @@ export function GoalDialog({ open, onOpenChange, goal, onClose }: GoalDialogProp
 
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar' : 'Crear'} Meta Financiera</DialogTitle>
           <DialogDescription>
@@ -154,54 +154,55 @@ export function GoalDialog({ open, onOpenChange, goal, onClose }: GoalDialogProp
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
-            <FormField
-              control={form.control}
-              name="goalType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tipo de Meta</FormLabel>
-                   <Select onValueChange={field.onChange} value={field.value} defaultValue="saving">
+             <FormField
+                control={form.control}
+                name="goalName"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Nombre de la Meta</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona un tipo" />
-                      </SelectTrigger>
+                        <Input placeholder="Ej., Vacaciones en la playa" {...field} />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="saving">Ahorrar para un objetivo</SelectItem>
-                      <SelectItem value="debt">Pagar una deuda</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+                    <FormMessage />
+                    </FormItem>
+                )}
             />
-            <FormField
-              control={form.control}
-              name="goalName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nombre de la Meta</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ej., Vacaciones en la playa" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="targetAmount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Monto Objetivo</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="5,000,000" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                control={form.control}
+                name="goalType"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Tipo de Meta</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue="saving">
+                        <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Selecciona un tipo" />
+                        </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                        <SelectItem value="saving">Ahorrar para un objetivo</SelectItem>
+                        <SelectItem value="debt">Pagar una deuda</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="targetAmount"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Monto Objetivo</FormLabel>
+                    <FormControl>
+                        <Input type="number" placeholder="5,000,000" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                 <FormField
                 control={form.control}
                 name="timeframe"
                 render={({ field }) => (
@@ -263,6 +264,7 @@ export function GoalDialog({ open, onOpenChange, goal, onClose }: GoalDialogProp
                   </FormItem>
                 )}
               />
+            </div>
              <FormField
               control={form.control}
               name="imageUrl"
