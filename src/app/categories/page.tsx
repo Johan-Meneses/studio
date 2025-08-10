@@ -90,35 +90,37 @@ function CategoryDialog({
     onOpenChange(false);
   };
 
-  const isSubcategory = !!initialParentId && !category;
+  const isSubcategoryAction = !!initialParentId || !!category?.parentId;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{category ? 'Editar Categoría' : (isSubcategory ? 'Agregar Subcategoría' : 'Agregar Categoría')}</DialogTitle>
+          <DialogTitle>{category ? 'Editar Categoría' : (initialParentId ? 'Agregar Subcategoría' : 'Agregar Categoría')}</DialogTitle>
           <DialogDescription>
             {category ? `Editando la categoría "${category.name}".` : 'Crea una nueva categoría para tus transacciones.'}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="parent" className="text-right">
-                Principal
-                </Label>
-                <Select value={parentId} onValueChange={(value) => setParentId(value === 'none' ? undefined : value)} disabled={!!initialParentId}>
-                    <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Categoría Principal (Opcional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="none">Ninguna (es categoría principal)</SelectItem>
-                        {parentCategories.map(p => (
-                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
+            {isSubcategoryAction && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="parent" className="text-right">
+                    Principal
+                    </Label>
+                    <Select value={parentId} onValueChange={(value) => setParentId(value === 'none' ? undefined : value)} disabled={!!initialParentId}>
+                        <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Categoría Principal (Opcional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">Ninguna (convertir en categoría principal)</SelectItem>
+                            {parentCategories.map(p => (
+                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
             <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">
                 Nombre
