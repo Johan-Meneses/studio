@@ -44,7 +44,6 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  SelectGroup,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -60,7 +59,8 @@ const transactionSchema = z.object({
   amount: z.coerce.number().positive('El monto debe ser positivo.'),
   date: z.date(),
   type: z.enum(['income', 'expense']),
-  category: z.string().min(1, 'La categoría es obligatoria.'),
+  categoryId: z.string().min(1, 'La categoría es obligatoria.'),
+  subCategoryId: z.string().optional(),
   linkedGoalId: z.string().optional(),
 });
 
@@ -137,37 +137,48 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
       amount: 0,
       date: new Date(),
       type: 'expense',
-      category: '',
+      categoryId: '',
+      subCategoryId: '',
       linkedGoalId: 'none',
     },
   });
 
-  const { categoryTree, flatCategoryList } = useMemo(() => {
-    const categoryMap = new Map(categories.map(c => [c.id, { ...c, children: [] as Category[] }]));
-    const tree: (Category & { children: Category[] })[] = [];
-    
+  const selectedCategoryId = form.watch('categoryId');
+
+  const { parentCategories, subCategoriesByParent, categoryMap } = useMemo(() => {
+    const parentCats: Category[] = [];
+    const subCatsByParent: Record<string, Category[]> = {};
+    const catMap = new Map<string, Category>();
+
     categories.forEach(cat => {
-      if (cat.parentId && categoryMap.has(cat.parentId)) {
-        categoryMap.get(cat.parentId)!.children.push(cat as Category & { children: Category[] });
-      } else {
-        tree.push(categoryMap.get(cat.id)!);
-      }
+        catMap.set(cat.id, cat);
+        if (cat.parentId) {
+            if (!subCatsByParent[cat.parentId]) {
+                subCatsByParent[cat.parentId] = [];
+            }
+            subCatsByParent[cat.parentId].push(cat);
+        } else {
+            parentCats.push(cat);
+        }
     });
 
-    const flatList = categories.map(c => ({ id: c.id, name: c.name }));
-
-    return { categoryTree: tree, flatCategoryList: flatList };
+    return { parentCategories: parentCats, subCategoriesByParent: subCatsByParent, categoryMap: catMap };
   }, [categories]);
+
+  const availableSubcategories = selectedCategoryId ? subCategoriesByParent[selectedCategoryId] : undefined;
 
   useEffect(() => {
     if (open) {
         if (transaction) {
+            const category = categoryMap.get(transaction.category);
+            const parentId = category?.parentId;
             form.reset({
                 description: transaction.description,
                 amount: transaction.amount,
                 date: new Date(transaction.date),
                 type: transaction.type,
-                category: transaction.category,
+                categoryId: parentId || transaction.category,
+                subCategoryId: parentId ? transaction.category : '',
                 linkedGoalId: transaction.linkedGoalId || 'none',
             });
         } else {
@@ -176,12 +187,18 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
                 amount: 0,
                 date: new Date(),
                 type: 'expense',
-                category: '',
+                categoryId: '',
+                subCategoryId: '',
                 linkedGoalId: 'none',
             });
         }
     }
-  }, [transaction, open, form]);
+  }, [transaction, open, form, categoryMap]);
+
+  useEffect(() => {
+    // Reset subcategory when parent changes
+    form.setValue('subCategoryId', '');
+  }, [selectedCategoryId, form]);
 
 
   const handleSuggestCategory = async () => {
@@ -196,15 +213,25 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
     }
     setIsSuggesting(true);
     try {
+      const allCategoryNames = categories.map(c => c.name);
       const result = await suggestCategory({
         description,
-        availableCategories: flatCategoryList.map(c => c.name),
+        availableCategories: allCategoryNames,
       });
 
-      const suggestedCategory = flatCategoryList.find(c => c.name === result.suggestedCategory);
+      const suggestedCategory = categories.find(c => c.name === result.suggestedCategory);
 
       if (suggestedCategory) {
-        form.setValue('category', suggestedCategory.id, { shouldValidate: true });
+        if (suggestedCategory.parentId) {
+            form.setValue('categoryId', suggestedCategory.parentId, { shouldValidate: true });
+            // Need a slight delay for the subcategory dropdown to be populated
+            setTimeout(() => {
+                form.setValue('subCategoryId', suggestedCategory.id, { shouldValidate: true });
+            }, 100);
+        } else {
+            form.setValue('categoryId', suggestedCategory.id, { shouldValidate: true });
+            form.setValue('subCategoryId', '', { shouldValidate: true });
+        }
         toast({
             title: 'Categoría Sugerida',
             description: `Sugerimos "${result.suggestedCategory}" con un ${Math.round(result.confidence * 100)}% de confianza.`,
@@ -232,28 +259,29 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
   const onSubmit = async (data: TransactionFormValues) => {
     if (!user) return;
     
+    const finalCategoryId = data.subCategoryId || data.categoryId;
+
     const batch = writeBatch(db);
     const getAmountMultiplier = (goalType: 'saving' | 'debt', transactionType: 'income' | 'expense'): number => {
-        // Income always adds to progress, regardless of goal type
         if (transactionType === 'income') return 1;
-
-        // Expense from a saving goal reduces progress
-        if (goalType === 'saving') return -1;
-        
-        // Expense towards a debt goal increases progress (reduces debt)
         if (goalType === 'debt') return 1;
-
-        return 0; // Should not happen
+        return -1;
     };
     
     try {
-        const transactionData = { ...data, linkedGoalId: data.linkedGoalId === 'none' ? null : data.linkedGoalId || null };
+        const transactionData = { 
+            description: data.description,
+            amount: data.amount,
+            date: data.date,
+            type: data.type,
+            category: finalCategoryId,
+            linkedGoalId: data.linkedGoalId === 'none' ? null : data.linkedGoalId || null 
+        };
         let transactionRef;
 
         if (isEditing && transaction) {
             transactionRef = doc(db, 'transactions', transaction.id);
             
-            // Revert previous goal amount if goal link changed or transaction details changed
             if(transaction.linkedGoalId) {
                 const oldGoal = goals.find(g => g.id === transaction.linkedGoalId);
                 if (oldGoal) {
@@ -270,7 +298,6 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
             batch.set(transactionRef, { ...transactionData, userId: user.uid });
         }
 
-        // Apply new goal amount
         if(data.linkedGoalId && data.linkedGoalId !== 'none') {
              const newGoal = goals.find(g => g.id === data.linkedGoalId);
              if (newGoal) {
@@ -400,53 +427,74 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Categoría</FormLabel>
-                    <div className="flex gap-2">
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona una categoría" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                           {categoryTree.map(parent => (
-                              <SelectGroup key={parent.id}>
-                                <SelectItem value={parent.id}>{parent.name}</SelectItem>
-                                {parent.children.map(child => (
-                                  <SelectItem key={child.id} value={child.id}>
-                                    &nbsp;&nbsp;&nbsp;{child.name}
-                                  </SelectItem>
+              <div className="flex flex-col gap-2">
+                 <FormField
+                    control={form.control}
+                    name="categoryId"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Categoría</FormLabel>
+                        <div className="flex gap-2">
+                        <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecciona una categoría" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {parentCategories.map(parent => (
+                                    <SelectItem key={parent.id} value={parent.id}>{parent.name}</SelectItem>
                                 ))}
-                              </SelectGroup>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                      <AddCategoryAlert onCategoryAdded={(id) => form.setValue('category', id, { shouldValidate: true })} />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={handleSuggestCategory}
-                        disabled={isSuggesting}
-                        aria-label="Sugerir Categoría"
-                      >
-                        {isSuggesting ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Bot className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                            </SelectContent>
+                        </Select>
+                        <AddCategoryAlert onCategoryAdded={(id) => form.setValue('categoryId', id, { shouldValidate: true })} />
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={handleSuggestCategory}
+                            disabled={isSuggesting}
+                            aria-label="Sugerir Categoría"
+                        >
+                            {isSuggesting ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                            <Bot className="h-4 w-4" />
+                            )}
+                        </Button>
+                        </div>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+              </div>
             </div>
+
+            {availableSubcategories && availableSubcategories.length > 0 && (
+                 <FormField
+                    control={form.control}
+                    name="subCategoryId"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Subcategoría (Opcional)</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecciona una subcategoría" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                 <SelectItem value="">Ninguna</SelectItem>
+                                {availableSubcategories.map(sub => (
+                                    <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+            )}
            
             <FormField
               control={form.control}
