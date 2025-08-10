@@ -138,7 +138,7 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
       date: new Date(),
       type: 'expense',
       categoryId: '',
-      subCategoryId: '',
+      subCategoryId: 'none',
       linkedGoalId: 'none',
     },
   });
@@ -178,7 +178,7 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
                 date: new Date(transaction.date),
                 type: transaction.type,
                 categoryId: parentId || transaction.category,
-                subCategoryId: parentId ? transaction.category : '',
+                subCategoryId: parentId ? transaction.category : 'none',
                 linkedGoalId: transaction.linkedGoalId || 'none',
             });
         } else {
@@ -188,7 +188,7 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
                 date: new Date(),
                 type: 'expense',
                 categoryId: '',
-                subCategoryId: '',
+                subCategoryId: 'none',
                 linkedGoalId: 'none',
             });
         }
@@ -197,7 +197,7 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
 
   useEffect(() => {
     // Reset subcategory when parent changes
-    form.setValue('subCategoryId', '');
+    form.setValue('subCategoryId', 'none');
   }, [selectedCategoryId, form]);
 
 
@@ -230,7 +230,7 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
             }, 100);
         } else {
             form.setValue('categoryId', suggestedCategory.id, { shouldValidate: true });
-            form.setValue('subCategoryId', '', { shouldValidate: true });
+            form.setValue('subCategoryId', 'none', { shouldValidate: true });
         }
         toast({
             title: 'Categoría Sugerida',
@@ -259,13 +259,17 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
   const onSubmit = async (data: TransactionFormValues) => {
     if (!user) return;
     
-    const finalCategoryId = data.subCategoryId || data.categoryId;
+    const finalCategoryId = (data.subCategoryId && data.subCategoryId !== 'none') ? data.subCategoryId : data.categoryId;
 
     const batch = writeBatch(db);
     const getAmountMultiplier = (goalType: 'saving' | 'debt', transactionType: 'income' | 'expense'): number => {
-        if (transactionType === 'income') return 1;
-        if (goalType === 'debt') return 1;
-        return -1;
+        if (goalType === 'debt' && transactionType === 'expense') {
+            return 1;
+        }
+        if (goalType === 'saving') {
+            return transactionType === 'income' ? 1 : -1;
+        }
+        return 0; 
     };
     
     try {
@@ -477,14 +481,14 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Subcategoría (Opcional)</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || 'none'}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="Selecciona una subcategoría" />
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                 <SelectItem value="">Ninguna</SelectItem>
+                                 <SelectItem value="none">Ninguna</SelectItem>
                                 {availableSubcategories.map(sub => (
                                     <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
                                 ))}
@@ -502,7 +506,7 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Vincular a Meta (Opcional)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} defaultValue="none">
+                  <Select onValueChange={field.onChange} value={field.value || 'none'} defaultValue="none">
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="No vincular a ninguna meta" />
