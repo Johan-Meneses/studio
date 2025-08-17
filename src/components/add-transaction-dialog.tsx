@@ -48,10 +48,10 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { suggestCategory } from '@/ai/flows/categorize-transaction';
-import type { Category, Transaction, Goal } from '@/lib/types';
+import type { Category, Transaction } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, writeBatch, increment } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
 
 
 const transactionSchema = z.object({
@@ -61,7 +61,6 @@ const transactionSchema = z.object({
   type: z.enum(['income', 'expense']),
   categoryId: z.string().min(1, 'La categoría es obligatoria.'),
   subCategoryId: z.string().optional(),
-  linkedGoalId: z.string().optional(),
 });
 
 type TransactionFormValues = z.infer<typeof transactionSchema>;
@@ -69,7 +68,6 @@ type TransactionFormValues = z.infer<typeof transactionSchema>;
 type AddTransactionDialogProps = {
     transaction?: Transaction | null,
     categories: Category[],
-    goals: Goal[],
     open: boolean,
     onOpenChange: (open: boolean) => void,
 }
@@ -124,7 +122,7 @@ function AddCategoryAlert({ onCategoryAdded }: { onCategoryAdded: (id: string) =
     )
 }
 
-export function AddTransactionDialog({ open, onOpenChange, transaction, categories, goals }: AddTransactionDialogProps) {
+export function AddTransactionDialog({ open, onOpenChange, transaction, categories }: AddTransactionDialogProps) {
   const [isSuggesting, setIsSuggesting] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -139,7 +137,6 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
       type: 'expense',
       categoryId: '',
       subCategoryId: 'none',
-      linkedGoalId: 'none',
     },
   });
 
@@ -179,7 +176,6 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
                 type: transaction.type,
                 categoryId: parentId || transaction.category,
                 subCategoryId: parentId ? transaction.category : 'none',
-                linkedGoalId: transaction.linkedGoalId || 'none',
             });
         } else {
             form.reset({
@@ -189,7 +185,6 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
                 type: 'expense',
                 categoryId: '',
                 subCategoryId: 'none',
-                linkedGoalId: 'none',
             });
         }
     }
@@ -262,15 +257,6 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
     const finalCategoryId = (data.subCategoryId && data.subCategoryId !== 'none') ? data.subCategoryId : data.categoryId;
 
     const batch = writeBatch(db);
-    const getAmountMultiplier = (goalType: 'saving' | 'debt', transactionType: 'income' | 'expense'): number => {
-        if (goalType === 'debt' && transactionType === 'expense') {
-            return 1;
-        }
-        if (goalType === 'saving') {
-            return transactionType === 'income' ? 1 : -1;
-        }
-        return 0; 
-    };
     
     try {
         const transactionData = { 
@@ -279,37 +265,18 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
             date: data.date,
             type: data.type,
             category: finalCategoryId,
-            linkedGoalId: data.linkedGoalId === 'none' ? null : data.linkedGoalId || null 
+            linkedGoalId: null // Remove linking from regular transactions
         };
         let transactionRef;
 
         if (isEditing && transaction) {
             transactionRef = doc(db, 'transactions', transaction.id);
-            
-            if(transaction.linkedGoalId) {
-                const oldGoal = goals.find(g => g.id === transaction.linkedGoalId);
-                if (oldGoal) {
-                    const oldMultiplier = getAmountMultiplier(oldGoal.goalType, transaction.type);
-                    const oldAmountToRevert = - (transaction.amount * oldMultiplier);
-                    const oldGoalRef = doc(db, 'goals', transaction.linkedGoalId);
-                    batch.update(oldGoalRef, { currentAmount: increment(oldAmountToRevert) });
-                }
-            }
+            // Note: Logic for reverting old goal contributions is removed as it's no longer needed here.
             batch.update(transactionRef, transactionData);
 
         } else {
             transactionRef = doc(collection(db, 'transactions'));
             batch.set(transactionRef, { ...transactionData, userId: user.uid });
-        }
-
-        if(data.linkedGoalId && data.linkedGoalId !== 'none') {
-             const newGoal = goals.find(g => g.id === data.linkedGoalId);
-             if (newGoal) {
-                 const newMultiplier = getAmountMultiplier(newGoal.goalType, data.type);
-                 const amountToAdd = data.amount * newMultiplier;
-                 const goalRef = doc(db, 'goals', data.linkedGoalId);
-                 batch.update(goalRef, { currentAmount: increment(amountToAdd) });
-             }
         }
         
         await batch.commit();
@@ -500,31 +467,6 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
                 />
             )}
            
-            <FormField
-              control={form.control}
-              name="linkedGoalId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Vincular a Meta (Opcional)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || 'none'} defaultValue="none">
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="No vincular a ninguna meta" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="none">Ninguna</SelectItem>
-                      {goals.map(goal => (
-                        <SelectItem key={goal.id} value={goal.id}>
-                          {goal.goalType === 'saving' ? 'Ahorro' : 'Deuda'}: {goal.goalName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <DialogFooter>
               <Button type="submit">{isEditing ? 'Guardar Cambios' : 'Agregar'}</Button>
             </DialogFooter>

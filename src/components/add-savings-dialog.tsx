@@ -24,8 +24,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import type { Goal } from '@/lib/types';
+import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { doc, updateDoc, increment } from 'firebase/firestore';
+import { doc, writeBatch, increment, collection } from 'firebase/firestore';
 
 const savingsSchema = z.object({
   amount: z.coerce.number().positive('El monto a aportar debe ser positivo.'),
@@ -42,6 +43,7 @@ type AddSavingsDialogProps = {
 
 export function AddSavingsDialog({ open, onOpenChange, goal, onClose }: AddSavingsDialogProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const form = useForm<SavingsFormValues>({
     resolver: zodResolver(savingsSchema),
@@ -65,7 +67,7 @@ export function AddSavingsDialog({ open, onOpenChange, goal, onClose }: AddSavin
   }
   
   const onSubmit = async (data: SavingsFormValues) => {
-    if (!goal) return;
+    if (!goal || !user) return;
 
     const isSavingGoal = goal.goalType === 'saving';
     const successTitle = isSavingGoal ? '¡Ahorro Añadido!' : '¡Abono Realizado!';
@@ -76,11 +78,29 @@ export function AddSavingsDialog({ open, onOpenChange, goal, onClose }: AddSavin
       ? 'No se pudo añadir el ahorro.'
       : 'No se pudo registrar el abono.';
 
+    const batch = writeBatch(db);
+
     try {
+        // 1. Update the goal's current amount
         const goalRef = doc(db, 'goals', goal.id);
-        await updateDoc(goalRef, {
+        batch.update(goalRef, {
             currentAmount: increment(data.amount)
         });
+
+        // 2. Create a new "saving" transaction
+        const transactionRef = doc(collection(db, 'transactions'));
+        batch.set(transactionRef, {
+            userId: user.uid,
+            amount: data.amount,
+            date: new Date(),
+            type: 'saving',
+            description: `Aporte a meta: ${goal.goalName}`,
+            category: goal.goalType === 'saving' ? 'Ahorro' : 'Pago Deuda', // Simple categorization for now
+            linkedGoalId: goal.id
+        });
+
+        await batch.commit();
+
         toast({ title: successTitle, description: successDescription });
         handleDialogClose(false);
     } catch (error) {

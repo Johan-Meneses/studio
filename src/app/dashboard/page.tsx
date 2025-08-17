@@ -30,6 +30,7 @@ import {
     Trash2,
     PlusCircle,
     Target,
+    PiggyBank
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -127,15 +128,14 @@ export default function DashboardPage() {
             const transactionRef = doc(db, 'transactions', transaction.id);
             batch.delete(transactionRef);
 
-            if (transaction.linkedGoalId) {
+            if (transaction.type === 'saving' && transaction.linkedGoalId) {
                 const goalRef = doc(db, 'goals', transaction.linkedGoalId);
                 // Revert the amount from the goal
-                const amountToRevert = transaction.type === 'income' ? -transaction.amount : transaction.amount;
-                batch.update(goalRef, { currentAmount: increment(amountToRevert) });
+                batch.update(goalRef, { currentAmount: increment(-transaction.amount) });
             }
             
             await batch.commit();
-            toast({ title: 'Transacción Eliminada', description: 'La transacción y su vínculo han sido eliminados con éxito.' });
+            toast({ title: 'Transacción Eliminada', description: 'La transacción ha sido eliminada.' });
         } catch (error) {
             toast({ title: 'Error', description: 'No se pudo eliminar la transacción.', variant: 'destructive' });
         }
@@ -144,6 +144,9 @@ export default function DashboardPage() {
     const transactionsWithCategoryNames = useMemo(() => {
         const categoryMap = new Map(categories.map(c => [c.id, c]));
         return transactions.map(t => {
+            if (t.type === 'saving') {
+                 return { ...t, categoryName: 'Ahorro a Meta' };
+            }
             if (!t.category) {
                 return { ...t, categoryName: 'Sin Categoría' };
             }
@@ -178,10 +181,14 @@ export default function DashboardPage() {
         const totalExpense = currentMonthTransactions
             .filter(t => t.type === 'expense')
             .reduce((sum, t) => sum + t.amount, 0);
-        
-        const balance = totalIncome - totalExpense;
 
-        return { totalIncome, totalExpense, balance };
+        const totalSaving = currentMonthTransactions
+            .filter(t => t.type === 'saving')
+            .reduce((sum, t) => sum + t.amount, 0);
+        
+        const balance = totalIncome - totalExpense - totalSaving;
+
+        return { totalIncome, totalExpense, totalSaving, balance };
     }, [transactions]);
     
     const expenseByCategory = useMemo(() => {
@@ -223,10 +230,11 @@ export default function DashboardPage() {
         </Button>
       </PageHeader>
       
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <SummaryCard title="Ingresos Totales" value={formatCurrency(monthlySummary.totalIncome)} icon={Landmark} description="Ingresos de este mes" />
           <SummaryCard title="Gastos Totales" value={formatCurrency(monthlySummary.totalExpense)} icon={ShoppingBag} description="Gastos de este mes" />
-          <SummaryCard title="Saldo" value={formatCurrency(monthlySummary.balance)} icon={Wallet} description="Tu saldo actual este mes" />
+          <SummaryCard title="Ahorros a Metas" value={formatCurrency(monthlySummary.totalSaving)} icon={PiggyBank} description="Ahorros de este mes" />
+          <SummaryCard title="Saldo Disponible" value={formatCurrency(monthlySummary.balance)} icon={Wallet} description="Tu saldo actual este mes" />
       </div>
 
       <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-7">
@@ -318,11 +326,20 @@ export default function DashboardPage() {
                                   {transaction.description}
                                 </TableCell>
                                 <TableCell className="px-2">
-                                    <Badge variant={transaction.type === 'income' ? 'default' : 'secondary'} className={transaction.type === 'income' ? 'bg-green-100 text-green-800' : ''}>
+                                    <Badge 
+                                      variant={transaction.type === 'income' ? 'default' : (transaction.type === 'expense' ? 'secondary' : 'outline')}
+                                      className={
+                                          transaction.type === 'income' ? 'bg-green-100 text-green-800' : 
+                                          (transaction.type === 'saving' ? 'border-blue-500 text-blue-500' : '')
+                                      }
+                                    >
                                         {transaction.categoryName}
                                     </Badge>
                                 </TableCell>
-                                <TableCell className={`text-right font-medium px-2 ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                                <TableCell className={`text-right font-medium px-2 ${
+                                    transaction.type === 'income' ? 'text-green-600' : 
+                                    (transaction.type === 'expense' ? 'text-red-600' : 'text-blue-600')
+                                }`}>
                                     {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                                 </TableCell>
                                 <TableCell className="hidden md:table-cell px-2">{format(transaction.date, 'dd MMM, yyyy', { locale: es })}</TableCell>
@@ -335,10 +352,12 @@ export default function DashboardPage() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onSelect={() => setEditingTransaction(transaction)}>
-                                            <Pencil className="mr-2 h-4 w-4" />
-                                            <span>Editar</span>
-                                        </DropdownMenuItem>
+                                        {transaction.type !== 'saving' && (
+                                            <DropdownMenuItem onSelect={() => setEditingTransaction(transaction)}>
+                                                <Pencil className="mr-2 h-4 w-4" />
+                                                <span>Editar</span>
+                                            </DropdownMenuItem>
+                                        )}
                                       <DropdownMenuItem onClick={() => handleDeleteTransaction(transaction)} className="text-red-500 focus:text-red-500">
                                         <Trash2 className="mr-2 h-4 w-4" />
                                         <span>Eliminar</span>
@@ -365,10 +384,7 @@ export default function DashboardPage() {
             }}
             transaction={editingTransaction} 
             categories={categories}
-            goals={goals}
         />
     </MainLayout>
   );
 }
-
-    

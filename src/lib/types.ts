@@ -5,7 +5,7 @@ export type Transaction = {
   description: string;
   amount: number;
   date: Date;
-  type: 'income' | 'expense';
+  type: 'income' | 'expense' | 'saving';
   category: string; // This is the category ID
   categoryName?: string; // This is the category name, optional
   userId: string;
@@ -46,5 +46,3 @@ const signupSchema = z.object({
 });
 
 export type SignupFormData = z.infer<typeof signupSchema>;
-
-    

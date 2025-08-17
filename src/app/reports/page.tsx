@@ -32,7 +32,7 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, doc, writeBatch, increment } from 'firebase/firestore';
-import type { Transaction, Category, Goal } from '@/lib/types';
+import type { Transaction, Category } from '@/lib/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -99,7 +99,6 @@ export default function ReportsPage() {
   const { toast } = useToast();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [goals, setGoals] = useState<Goal[]>([]);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [date, setDate] = useState<DateRange | undefined>({
@@ -114,7 +113,6 @@ export default function ReportsPage() {
 
       const transactionsQuery = query(collection(db, 'transactions'), where('userId', '==', user.uid));
       const categoriesQuery = query(collection(db, 'categories'), where('userId', '==', user.uid));
-      const goalsQuery = query(collection(db, 'goals'), where('userId', '==', user.uid));
 
       const unsubscribeTransactions = onSnapshot(transactionsQuery, (snapshot) => {
           const userTransactions: Transaction[] = snapshot.docs.map(doc => ({
@@ -132,25 +130,10 @@ export default function ReportsPage() {
           } as Category));
           setCategories(userCategories);
       });
-      
-      const unsubscribeGoals = onSnapshot(goalsQuery, (snapshot) => {
-        const userGoals: Goal[] = snapshot.docs.map(doc => {
-             const data = doc.data();
-             if (!data.createdAt) return null;
-             return {
-                id: doc.id,
-                ...data,
-                targetDate: data.targetDate?.toDate(),
-                createdAt: data.createdAt.toDate(),
-             } as Goal;
-        }).filter((goal): goal is Goal => goal !== null);
-        setGoals(userGoals);
-    });
 
       return () => {
           unsubscribeTransactions();
           unsubscribeCategories();
-          unsubscribeGoals();
       };
   }, [user]);
 
@@ -160,24 +143,13 @@ export default function ReportsPage() {
         const transactionRef = doc(db, 'transactions', transaction.id);
         batch.delete(transactionRef);
 
-        if (transaction.linkedGoalId) {
-            const goal = goals.find(g => g.id === transaction.linkedGoalId);
-            if(goal) {
-                const getAmountMultiplier = (goalType: 'saving' | 'debt', transactionType: 'income' | 'expense'): number => {
-                    if (transactionType === 'income') return 1;
-                    if (goalType === 'debt') return 1;
-                    return -1;
-                };
-                const multiplier = getAmountMultiplier(goal.goalType, transaction.type);
-                const amountToRevert = -(transaction.amount * multiplier);
-
-                const goalRef = doc(db, 'goals', transaction.linkedGoalId);
-                batch.update(goalRef, { currentAmount: increment(amountToRevert) });
-            }
+        if (transaction.type === 'saving' && transaction.linkedGoalId) {
+            const goalRef = doc(db, 'goals', transaction.linkedGoalId);
+            batch.update(goalRef, { currentAmount: increment(-transaction.amount) });
         }
         
         await batch.commit();
-        toast({ title: 'Transacción Eliminada', description: 'La transacción y su vínculo han sido eliminados con éxito.' });
+        toast({ title: 'Transacción Eliminada', description: 'La transacción ha sido eliminada con éxito.' });
     } catch (error) {
         toast({ title: 'Error', description: 'No se pudo eliminar la transacción.', variant: 'destructive' });
     }
@@ -208,7 +180,7 @@ export default function ReportsPage() {
       return tDate >= fromDate && tDate <= toDate;
     }).map(t => ({
         ...t,
-        categoryName: categoryMap.get(t.category) || 'Sin Categoría'
+        categoryName: t.type === 'saving' ? 'Ahorro a Meta' : (categoryMap.get(t.category) || 'Sin Categoría')
     })).sort((a,b) => b.date.getTime() - a.date.getTime());
   }, [transactions, date, categoryMap]);
 
@@ -222,7 +194,7 @@ export default function ReportsPage() {
           }
           if (t.type === 'income') {
               trends[month].income += t.amount;
-          } else {
+          } else if (t.type === 'expense') {
               trends[month].expense += t.amount;
           }
       });
@@ -358,11 +330,20 @@ export default function ReportsPage() {
                                   {transaction.description}
                                 </TableCell>
                                 <TableCell className="px-2">
-                                    <Badge variant={transaction.type === 'income' ? 'default' : 'secondary'} className={transaction.type === 'income' ? 'bg-green-100 text-green-800' : ''}>
+                                     <Badge 
+                                      variant={transaction.type === 'income' ? 'default' : (transaction.type === 'expense' ? 'secondary' : 'outline')}
+                                      className={
+                                          transaction.type === 'income' ? 'bg-green-100 text-green-800' : 
+                                          (transaction.type === 'saving' ? 'border-blue-500 text-blue-500' : '')
+                                      }
+                                    >
                                         {transaction.categoryName}
                                     </Badge>
                                 </TableCell>
-                                <TableCell className={`text-right font-medium px-2 ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                                <TableCell className={`text-right font-medium px-2 ${
+                                    transaction.type === 'income' ? 'text-green-600' : 
+                                    (transaction.type === 'expense' ? 'text-red-600' : 'text-blue-600')
+                                }`}>
                                     {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                                 </TableCell>
                                 <TableCell className="hidden md:table-cell px-2">{format(transaction.date, 'dd MMM, yyyy', { locale: es })}</TableCell>
@@ -375,10 +356,12 @@ export default function ReportsPage() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onSelect={() => handleEditTransaction(transaction)}>
-                                            <Pencil className="mr-2 h-4 w-4" />
-                                            <span>Editar</span>
-                                        </DropdownMenuItem>
+                                        {transaction.type !== 'saving' && (
+                                            <DropdownMenuItem onSelect={() => handleEditTransaction(transaction)}>
+                                                <Pencil className="mr-2 h-4 w-4" />
+                                                <span>Editar</span>
+                                            </DropdownMenuItem>
+                                        )}
                                       <DropdownMenuItem onClick={() => handleDeleteTransaction(transaction)} className="text-red-500 focus:text-red-500">
                                         <Trash2 className="mr-2 h-4 w-4" />
                                         <span>Eliminar</span>
@@ -411,7 +394,6 @@ export default function ReportsPage() {
             }}
             transaction={editingTransaction} 
             categories={categories}
-            goals={goals}
         />
     </MainLayout>
   );
