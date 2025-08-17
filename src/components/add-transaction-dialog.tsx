@@ -48,10 +48,10 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { suggestCategory } from '@/ai/flows/categorize-transaction';
-import type { Category, Transaction } from '@/lib/types';
+import type { Category, Transaction, Goal } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, writeBatch, increment } from 'firebase/firestore';
 
 
 const transactionSchema = z.object({
@@ -68,6 +68,7 @@ type TransactionFormValues = z.infer<typeof transactionSchema>;
 type AddTransactionDialogProps = {
     transaction?: Transaction | null,
     categories: Category[],
+    goals: Goal[],
     open: boolean,
     onOpenChange: (open: boolean) => void,
 }
@@ -122,7 +123,7 @@ function AddCategoryAlert({ onCategoryAdded }: { onCategoryAdded: (id: string) =
     )
 }
 
-export function AddTransactionDialog({ open, onOpenChange, transaction, categories }: AddTransactionDialogProps) {
+export function AddTransactionDialog({ open, onOpenChange, transaction, categories, goals }: AddTransactionDialogProps) {
   const [isSuggesting, setIsSuggesting] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -265,13 +266,12 @@ export function AddTransactionDialog({ open, onOpenChange, transaction, categori
             date: data.date,
             type: data.type,
             category: finalCategoryId,
-            linkedGoalId: null // Remove linking from regular transactions
+            linkedGoalId: null
         };
         let transactionRef;
 
         if (isEditing && transaction) {
             transactionRef = doc(db, 'transactions', transaction.id);
-            // Note: Logic for reverting old goal contributions is removed as it's no longer needed here.
             batch.update(transactionRef, transactionData);
 
         } else {

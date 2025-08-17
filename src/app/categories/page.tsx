@@ -89,8 +89,10 @@ function CategoryDialog({
     onSave(name, parentId);
     onOpenChange(false);
   };
+  
+  const isSubcategoryAction = !!initialParentId || (!!category && !!category.parentId);
+  const isCreatingNewParent = !category && !initialParentId;
 
-  const isSubcategoryAction = !!initialParentId || !!category?.parentId;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -103,17 +105,17 @@ function CategoryDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-            {isSubcategoryAction && (
+            {!isCreatingNewParent && (
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="parent" className="text-right">
                     Principal
                     </Label>
-                    <Select value={parentId} onValueChange={(value) => setParentId(value === 'none' ? undefined : value)} disabled={!!initialParentId}>
+                    <Select value={parentId || 'none'} onValueChange={(value) => setParentId(value === 'none' ? undefined : value)} disabled={!!initialParentId && !category}>
                         <SelectTrigger className="col-span-3">
                             <SelectValue placeholder="Categoría Principal (Opcional)" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="none">Ninguna (convertir en categoría principal)</SelectItem>
+                            <SelectItem value="none">Ninguna (categoría principal)</SelectItem>
                             {parentCategories.map(p => (
                                 <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                             ))}
@@ -241,7 +243,12 @@ export default function CategoriesPage() {
     categories.forEach(cat => {
         const categoryWithChildren = categoryMap.get(cat.id)!;
         if (cat.parentId && categoryMap.has(cat.parentId)) {
-            categoryMap.get(cat.parentId)!.children.push(categoryWithChildren);
+            const parent = categoryMap.get(cat.parentId)!;
+            if (parent.children) {
+                parent.children.push(categoryWithChildren);
+            } else {
+                parent.children = [categoryWithChildren];
+            }
         } else {
             tree.push(categoryWithChildren);
         }
@@ -249,7 +256,7 @@ export default function CategoriesPage() {
     
     const parentCats = categories.filter(c => !c.parentId);
 
-    return { categoryTree: tree, parentCategories: parentCats };
+    return { categoryTree: tree.sort((a,b) => a.name.localeCompare(b.name)), parentCategories: parentCats.sort((a,b) => a.name.localeCompare(b.name)) };
   }, [categories]);
 
   const handleSaveCategory = async (name: string, parentId?: string) => {
@@ -316,6 +323,7 @@ export default function CategoriesPage() {
 
   const renderCategory = (category: Category & { children: Category[] }, level: number) => {
       const isExpanded = !!expandedCategories[category.id];
+      const sortedChildren = category.children.sort((a,b) => a.name.localeCompare(b.name));
       return (
           <div key={category.id}>
               <CategoryRow 
@@ -324,13 +332,13 @@ export default function CategoriesPage() {
                 onEdit={openDialogForEdit}
                 onDelete={handleDeleteCategory}
                 onAddSubcategory={() => openDialogForAdd(category.id)}
-                hasChildren={category.children.length > 0}
+                hasChildren={sortedChildren.length > 0}
                 isExpanded={isExpanded}
                 onToggleExpand={toggleExpand}
               />
-              {isExpanded && category.children.length > 0 && (
+              {isExpanded && sortedChildren.length > 0 && (
                   <div className="pl-4 border-l-2 ml-4">
-                      {category.children.map(child => renderCategory(child, level + 1))}
+                      {sortedChildren.map(child => renderCategory(child, level + 1))}
                   </div>
               )}
           </div>

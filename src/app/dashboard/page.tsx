@@ -384,6 +384,7 @@ export default function DashboardPage() {
             }}
             transaction={editingTransaction} 
             categories={categories}
+            goals={goals}
         />
     </MainLayout>
   );

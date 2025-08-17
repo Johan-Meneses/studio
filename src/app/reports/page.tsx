@@ -32,7 +32,7 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, doc, writeBatch, increment } from 'firebase/firestore';
-import type { Transaction, Category } from '@/lib/types';
+import type { Transaction, Category, Goal } from '@/lib/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -99,6 +99,7 @@ export default function ReportsPage() {
   const { toast } = useToast();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [date, setDate] = useState<DateRange | undefined>({
@@ -113,6 +114,7 @@ export default function ReportsPage() {
 
       const transactionsQuery = query(collection(db, 'transactions'), where('userId', '==', user.uid));
       const categoriesQuery = query(collection(db, 'categories'), where('userId', '==', user.uid));
+      const goalsQuery = query(collection(db, 'goals'), where('userId', '==', user.uid));
 
       const unsubscribeTransactions = onSnapshot(transactionsQuery, (snapshot) => {
           const userTransactions: Transaction[] = snapshot.docs.map(doc => ({
@@ -130,10 +132,20 @@ export default function ReportsPage() {
           } as Category));
           setCategories(userCategories);
       });
+      
+      const unsubscribeGoals = onSnapshot(goalsQuery, (snapshot) => {
+            const userGoals: Goal[] = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                targetDate: doc.data().targetDate?.toDate(),
+            } as Goal));
+            setGoals(userGoals);
+      });
 
       return () => {
           unsubscribeTransactions();
           unsubscribeCategories();
+          unsubscribeGoals();
       };
   }, [user]);
 
@@ -394,6 +406,7 @@ export default function ReportsPage() {
             }}
             transaction={editingTransaction} 
             categories={categories}
+            goals={goals}
         />
     </MainLayout>
   );
